@@ -2,18 +2,14 @@ class FiniteField {
     constructor(order) { 
         this.order = order; 
         this.elems = new Set(); 
-        this.invertibles = new Map(); 
+        this.inverses = new Map(); 
 
         for (let i = 0; i < order; i++) {
             this.elems.add(i); 
-            if (this.invertible(i)) { 
-                
-            }
         }
-
-    }; 
+    } 
     
-    gcd(a,b) { 
+    gcd = function (a,b) { 
         if (!b) { 
             return a; 
         }
@@ -72,21 +68,22 @@ class FiniteField {
 
     invert(i) { 
         var inv = 0; 
-        if (this.invertible(i)) { 
+        if (this.invertible(i)) { // should try and figure out check only once for invertibility 
             for (; inv < this.order; inv++) { 
                 if ((inv * j) % this.order == 1) { 
                     break; 
                 }
             }
+            this.inverses.add(i, inv); 
         }
         return inv; 
     }
 
-    division(i, j) { // i 'divided' by j
+    division(i, j) { // i 'divided' by j, finite field multiplication really 
         var inv = 0;                   
         if (this.invertible(j)) { 
             inv = invert(j); 
         }
         return (i * inv) % this.order;  
-    }
+    }       
 }
