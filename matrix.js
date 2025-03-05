@@ -42,7 +42,11 @@ class Matrix {
         }
     
     assertMultCompat = function(mtx, ln) { 
-        assert((this.cols == this.rows), "incompatible dims", ln); 
+        assert((this.cols == mtx.rows), "incompatible dims", ln); 
+    }
+
+    assertSquare = function(ln) {
+        assert((this.cols == this.rows), "not square!", ln); 
     }
 
     add(mtx) { 
@@ -75,6 +79,39 @@ class Matrix {
         this = sol;
     }
 
+    sgn(i) { 
+        return ( i % 2 == 0 ? (-1) : 1 )
+    }
 
+    det() {
+        this.assertNonEmpty(83);
+        this.assertSquare(84); 
+        if (this.rows == 1) {
+            return this.contents[0][0];
+        } else if (this.rows == 2) {
+            return this.contents[0][0]*this.contents[1][1] - this.contents[0][1]*this.contents[1][0];
+        } else {
+            let sol = 0; 
+            for (let j = 0; j < this.rows; j++) {
+                sol += this.contents[0][j] * sgn(j+1) * this.subMatrix(0,j).det(); 
+            }
+        }
+        // need some sort of recursive formula... 
+        // det [[a b c] [d e f] [g h i]] = a det[ [e f] [h i]]  
+        return sol; 
+    }        
+
+    subMatrix = function(mtx, row, column) { // use in determinant ONLY. Row, Column is equivalent to the rows, columns not being taken. 
+        let sol = new Matrix(mtx.order, mtx.rows-1, mtx.cols-1);
+
+        for (let i = 0; i < sol.rows; i++) {
+            for (let j = 0; j < sol.cols; j++) {
+                if ( !(i == row - 1 && j == column-1) ) {
+                    sol.contents[i][j] = mtx.contents[i][j]; 
+                }
+            }
+        }
+        return sol; 
+    }
     
 }
