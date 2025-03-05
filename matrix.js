@@ -72,7 +72,9 @@ class Matrix {
                 sol.contents[i][j] % sol.glf.order; 
             }
         }
-        return sol; 
+        this = sol;
     }
 
+
+    
 }
