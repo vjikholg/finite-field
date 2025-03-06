@@ -67,7 +67,7 @@ class Matrix {
         mtx.assertNonEmpty(43); 
         this.assertMultCompat(mtx, 44);
         
-        let sol = new Matrix(this.order, this.rows, mtx.cols); 
+        let sol = new Matrix(this.glf.order, this.rows, mtx.cols); 
         for (let i = 0; i < sol.rows; i++) {
             for (let j = 0; j < sol.cols; j++) { 
                 for (let k = 0; k < sol.rows; k++) {
@@ -96,22 +96,47 @@ class Matrix {
                 sol += this.contents[0][j] * sgn(j+1) * this.subMatrix(0,j).det(); 
             }
         }
-        // need some sort of recursive formula... 
-        // det [[a b c] [d e f] [g h i]] = a det[ [e f] [h i]]  
         return sol; 
     }        
 
-    subMatrix = function(mtx, row, column) { // use in determinant ONLY. Row, Column is equivalent to the rows, columns not being taken. 
-        let sol = new Matrix(mtx.order, mtx.rows-1, mtx.cols-1);
+    subMatrix = function(row, column) { // if elements belong in certain rows, certain columns, not taken. 
+        let sol = new Matrix(this.glf.order, this.rows-1, this.cols-1);
 
-        for (let i = 0; i < sol.rows; i++) {
-            for (let j = 0; j < sol.cols; j++) {
-                if ( !(i == row - 1 && j == column-1) ) {
-                    sol.contents[i][j] = mtx.contents[i][j]; 
-                }
+        for (let i = 0, si = 0; i < this.rows; i++) {
+            if (i != row) continue; 
+            for (let j = 0, sj = 0; j < this.cols; j++) {
+                if (j != column) continue; 
+                sol.contents[si][sj] = this.contents[i][j];
+                sj++;
             }
+            si++;
         }
         return sol; 
     }
     
+    transpose = function(mtx) {
+        this.assertSquare(118); 
+        if (mtx.rows == mtx.cols) {
+            return mtx; 
+        }
+        let sol = new Matrix(mtx.glf.order, mtx.rows, mtx.cols)
+        for (let i = 0; i < sol.rows; i++) {
+            for (let j = 0; j < sol.cols; j++) { 
+                sol.contents[i][j] = mtx.contents[i][j]
+            }
+        }
+    }
+
+    adjugate = function(mtx) { 
+        mtx.assertSquare(131); 
+        if (mtx.rows == 1) {
+            return mtx; 
+        }
+        let sol = new Matrix(mtx.glf.order, mtx.rows, mtx.cols); 
+        for (let i = 0; i < mtx.rows; i++) {
+            for (let j = 0; k < mtx.cols; j++) {
+                sol.contents[i][j] = subMatrix(mtx, i,j).det(); 
+            }
+        }
+    }
 }
