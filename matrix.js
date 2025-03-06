@@ -5,10 +5,10 @@
  * 
  */
 
-
+import {FiniteFieldRegistry} from "./finitefield"; // keep singleton registry of finite field! 
 class Matrix { 
     constructor(order, m, n) { 
-        this.glf = new FiniteField(order); 
+        this.glf = FiniteFieldRegistry.getField(order); // YES THIS IS BETTER WHAT WAS I THINKING 
         this.rows = m; 
         this.cols = n || m; // if n is not provided, we assume m x m square matrix  
         this.contents = new Array(m); 

@@ -1,4 +1,4 @@
-class FiniteField { 
+export class FiniteField { 
     constructor(order) { 
         this.order = order; 
         this.elems = new Set(); 
@@ -6,10 +6,7 @@ class FiniteField {
 
         for (let i = 0; i < order; i++) {
             this.elems.add(i); 
-        }
-        for (let i = 0; i < order; i++) { 
-            this.inverses.set(i, this.invert(i)); 
-        }
+        }   
     } 
     
     gcd = function (a,b) { 
@@ -89,4 +86,14 @@ class FiniteField {
         }
         return (i * inv) % this.order;  
     }       
+}
+
+export const FiniteFieldRegistry = {
+    fields: new Map(), 
+    getField(order) {
+        if (!this.fields.has(order)) {
+            this.fields.set(order, new FiniteField(order)); 
+        }
+        return this.fields.get(order); 
+    }
 }
