@@ -1,51 +1,42 @@
-class Matrix { 
-    constructor(order) { 
-        this.glf = new FiniteField(order); 
-        this.contents = []; 
-        this.rows = 0; 
-        this.cols = 0; 
-    }
+/**
+ * 
+ * 
+ * 
+ * 
+ */
 
+
+class Matrix { 
     constructor(order, m, n) { 
         this.glf = new FiniteField(order); 
         this.rows = m; 
-        this.cols = n; 
+        this.cols = n || m; // if n is not provided, we assume m x m square matrix  
         this.contents = new Array(m); 
         for (let i = 0; i < m; i++) {
-            this.contents[i] = new Array(n).fill(0); 
+            this.contents[i] = new Array(this.cols).fill(0); 
         }
     }
 
-    constructor(order, m) { 
-        this.glf = new FiniteField(order); 
-        this.rows = m; 
-        this.cols = m; 
-        this.contents = new Array(m); 
-        for (let i = 0; i < m; i++) {
-            this.contents[i] = new Array(m).fill(0); 
-        }
-    }
-
-    assert = function(con, msg, ln) {
+    assert(con, msg, ln) {
         if (!con) { 
             throw new RangeError(msg, "matrix.js", ln); 
         }
     }
 
-    assertDim = function(mtx, ln) { 
-        assert((this.rows == mtx.rows) && (this.cols == mtx.cols), "not same dimensions", ln);
-        } 
+    assertDim(mtx, ln) { 
+        assert((this.rows == mtx.rows) && (this.cols == mtx.cols), "not same dimensions", ln); // multiplication check
+    } 
     
 
-    assertNonEmpty = function(ln) { 
+    assertNonEmpty(ln) { 
         assert((this.rows == 0 || this.cols == 0), "empty matrix" , ln); 
-        }
+    }
     
-    assertMultCompat = function(mtx, ln) { 
+    assertMultCompat(ln) { 
         assert((this.cols == mtx.rows), "incompatible dims", ln); 
     }
 
-    assertSquare = function(ln) {
+    assertSquare(ln) {
         assert((this.cols == this.rows), "not square!", ln); 
     }
 
@@ -57,15 +48,16 @@ class Matrix {
         for (let i = 0; i < this.rows; i++) {
             for (let j = 0; this.cols; j++) {
                 this.contents[i][j] += mtx.contents[i][j]
+                this.contents %= this.glf.order; 
             }
         }
     }
 
     mult(mtx) { // right-mult by mtx
-        this.assertDim(mtx, 41); 
-        this.assertNonEmpty(42);
-        mtx.assertNonEmpty(43); 
-        this.assertMultCompat(mtx, 44);
+        this.assertDim(mtx, 48); 
+        this.assertNonEmpty(49);
+        mtx.assertNonEmpty(50); 
+        this.assertMultCompat(mtx, 51);
         
         let sol = new Matrix(this.glf.order, this.rows, mtx.cols); 
         for (let i = 0; i < sol.rows; i++) {
@@ -84,8 +76,8 @@ class Matrix {
     }
 
     det() {
-        this.assertNonEmpty(83);
-        this.assertSquare(84); 
+        this.assertNonEmpty(70);
+        this.assertSquare(71); 
         if (this.rows == 1) {
             return this.contents[0][0];
         } else if (this.rows == 2) {
@@ -96,7 +88,7 @@ class Matrix {
                 sol += this.contents[0][j] * sgn(j+1) * this.subMatrix(0,j).det(); 
             }
         }
-        return sol; 
+        return sol % this.glf.order; 
     }        
 
     subMatrix = function(row, column) { // if elements belong in certain rows, certain columns, not taken. 
@@ -114,29 +106,44 @@ class Matrix {
         return sol; 
     }
     
-    transpose = function(mtx) {
-        this.assertSquare(118); 
-        if (mtx.rows == mtx.cols) {
-            return mtx; 
+    transpose = function() {
+        this.assertSquare(101); 
+        if (this.rows == 1) {
+            return this; // this may cause problems but its fine for now, since 1x1 matrices represent cyclic groups C_n 
         }
-        let sol = new Matrix(mtx.glf.order, mtx.rows, mtx.cols)
-        for (let i = 0; i < sol.rows; i++) {
-            for (let j = 0; j < sol.cols; j++) { 
-                sol.contents[i][j] = mtx.contents[i][j]
+
+        let sol = new Matrix(this.glf.order, this.rows, this.cols)
+
+        for (let i = 0; i < this.rows; i++) {
+            for (let j = 0; j < this.cols; j++) { 
+                sol.contents[i][j] = this.contents[i][j]
             }
         }
+        return sol; 
     }
 
-    adjugate = function(mtx) { 
-        mtx.assertSquare(131); 
-        if (mtx.rows == 1) {
-            return mtx; 
+    adjugate() { 
+        this.assertSquare(117); 
+        if (this.rows == 1) {
+            return this; 
         }
-        let sol = new Matrix(mtx.glf.order, mtx.rows, mtx.cols); 
-        for (let i = 0; i < mtx.rows; i++) {
-            for (let j = 0; k < mtx.cols; j++) {
-                sol.contents[i][j] = subMatrix(mtx, i,j).det(); 
+        let sol = new Matrix(this.glf.order, this.rows, this.cols); 
+        for (let i = 0; i < this.rows; i++) {
+            for (let j = 0; k < this.cols; j++) {
+                sol.contents[i][j] = subMatrix(i,j).det(); 
             }
         }
+
+        return sol; 
     }
+
+    invert() { // finally, moment of truth! 
+        this.assertSquare(140); 
+        let adj = this.adjugate(); 
+        let det = this.det(); 
+
+        return (this.glf.invert(det) * adj) % this.glf.order; 
+    }
+
+
 }

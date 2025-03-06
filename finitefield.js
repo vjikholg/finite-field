@@ -7,6 +7,9 @@ class FiniteField {
         for (let i = 0; i < order; i++) {
             this.elems.add(i); 
         }
+        for (let i = 0; i < order; i++) { 
+            this.inverses.set(i, this.invert(i)); 
+        }
     } 
     
     gcd = function (a,b) { 
