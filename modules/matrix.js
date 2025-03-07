@@ -6,7 +6,7 @@
  */
 
 import {FiniteFieldRegistry} from "./finitefield"; // keep singleton registry of finite field! 
-class Matrix { 
+export class Matrix { 
     constructor(order, m, n) { 
         this.glf = FiniteFieldRegistry.getField(order); // YES THIS IS BETTER WHAT WAS I THINKING 
         this.rows = m; 
@@ -59,16 +59,17 @@ class Matrix {
         mtx.assertNonEmpty(50); 
         this.assertMultCompat(mtx, 51);
         
-        let sol = new Matrix(this.glf.order, this.rows, mtx.cols); 
-        for (let i = 0; i < sol.rows; i++) {
-            for (let j = 0; j < sol.cols; j++) { 
-                for (let k = 0; k < sol.rows; k++) {
-                    sol.contents[i][j] += this.contents[i][k] * mtx.contents[k][j]; 
+        let temp = new Array();
+        temp = this.contents.slice();  
+        
+        for (let i = 0; i < this.rows; i++) {
+            for (let j = 0; j < this.cols; j++) { 
+                for (let k = 0; k < this; k++) {
+                    this.contents[i][j] += temp.contents[i][k] * mtx.contents[k][j]; 
                 }
-                sol.contents[i][j] % sol.glf.order; 
+                this.contents[i][j] % sol.glf.order; 
             }
         }
-        this = sol;
     }
 
     sgn(i) { 
@@ -122,8 +123,9 @@ class Matrix {
         return sol; 
     }
 
-    adjugate() { 
-        this.assertSquare(117); 
+
+    cofactor() { 
+        this.assertSquare(127); 
         if (this.rows == 1) {
             return this; 
         }
@@ -133,8 +135,11 @@ class Matrix {
                 sol.contents[i][j] = subMatrix(i,j).det(); 
             }
         }
-
         return sol; 
+    }
+
+    adjugate() { 
+        return sol.transpose(); 
     }
 
     invert() { // finally, moment of truth! 
@@ -149,6 +154,5 @@ class Matrix {
         }
         return sol; 
     }
-
 
 }
