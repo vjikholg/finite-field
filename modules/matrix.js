@@ -24,20 +24,20 @@ export class Matrix {
     }
 
     assertDim(mtx, ln) { 
-        assert((this.rows == mtx.rows) && (this.cols == mtx.cols), "not same dimensions", ln); // multiplication check
+        this.assert((this.rows == mtx.rows) && (this.cols == mtx.cols), "not same dimensions", ln); // multiplication check
     } 
     
 
     assertNonEmpty(ln) { 
-        assert((this.rows == 0 || this.cols == 0), "empty matrix" , ln); 
+        this.assert((this.rows == 0 || this.cols == 0), "empty matrix" , ln); 
     }
     
     assertMultCompat(ln) { 
-        assert((this.cols == mtx.rows), "incompatible dims", ln); 
+        this.assert((this.cols == mtx.rows), "incompatible dims", ln); 
     }
 
     assertSquare(ln) {
-        assert((this.cols == this.rows), "not square!", ln); 
+        this.assert((this.cols == this.rows), "not square!", ln); 
     }
 
     add(mtx) { 
@@ -77,7 +77,7 @@ export class Matrix {
     }
 
     det() {
-        this.assertNonEmpty(70);
+        // this.assertNonEmpty(70); // TODO: NEED TO FIX THIS LINE LATER, EMPTY MATRIX ISSUE?
         this.assertSquare(71); 
         if (this.rows == 1) {
             return this.contents[0][0];
@@ -86,10 +86,10 @@ export class Matrix {
         } else {
             let sol = 0; 
             for (let j = 0; j < this.rows; j++) {
-                sol += this.contents[0][j] * sgn(j+1) * this.subMatrix(0,j).det(); 
+                sol += this.contents[0][j] * this.sgn(j+1) * this.subMatrix(0,j).det(); 
             }
+            return sol % this.glf.order; 
         }
-        return sol % this.glf.order; 
     }        
 
     subMatrix = function(row, column) { // if elements belong in certain rows, certain columns, not taken. 
@@ -108,16 +108,15 @@ export class Matrix {
     }
     
     transpose = function() {
-        this.assertSquare(101); 
         if (this.rows == 1) {
             return this; // this may cause problems but its fine for now, since 1x1 matrices represent cyclic groups C_n 
         }
 
-        let sol = new Matrix(this.glf.order, this.rows, this.cols)
+        let sol = new Matrix(this.glf.order, this.cols, this.rows)
 
         for (let i = 0; i < this.rows; i++) {
             for (let j = 0; j < this.cols; j++) { 
-                sol.contents[i][j] = this.contents[i][j]
+                sol.contents[j][i] = this.contents[i][j]
             }
         }
         return sol; 
