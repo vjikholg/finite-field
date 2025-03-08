@@ -9,7 +9,7 @@ class FiniteGroup {
         this.makeGroup(generators, n); 
     }
 
-    makeGroup(generators, n) {                              // this would be horribly inefficient... if |G| was very large.  
+    makeGroup(generators, n) {                              // this is horribly inefficient... if |G| was very large.  
         generators.forEach((mtx) => this.elems.add(mtx));   // we'd just use shreier-sims at that point...
         generators.forEach((mtx) => this.elems.add(mtx.invert())); 
         let i = 0; 
@@ -30,7 +30,6 @@ class FiniteGroup {
             i++; 
         }
     }
-    // test commit please ignore
     contains(elem) {
         return this.elems.includes(elem); 
     }
