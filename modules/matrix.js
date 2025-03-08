@@ -72,11 +72,11 @@ export class Matrix {
         }
     }
 
-    sgn(i) { 
+    static sgn(i) { 
         return ( i % 2 == 0 ? (-1) : 1 )
     }
 
-    det() {
+    det() { 
         // this.assertNonEmpty(70); // TODO: NEED TO FIX THIS LINE LATER, EMPTY MATRIX ISSUE?
         this.assertSquare(71); 
         if (this.rows == 1) {

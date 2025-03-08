@@ -9,7 +9,7 @@ export class FiniteField {
         }   
     } 
     
-    gcd = function (a,b) { 
+    static gcd = function (a,b) { 
         if (!b) { 
             return a; 
         }
