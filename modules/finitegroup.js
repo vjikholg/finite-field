@@ -30,7 +30,7 @@ class FiniteGroup {
             i++; 
         }
     }
-
+    // test commit please ignore
     contains(elem) {
         return this.elems.includes(elem); 
     }
