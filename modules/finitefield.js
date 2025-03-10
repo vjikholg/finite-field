@@ -85,7 +85,11 @@ export class FiniteField {
             inv = invert(j); 
         }
         return (i * inv) % this.order;  
-    }       
+    }
+    
+    static conjugate(i,j) { // conjugation over finite fields is the identity map. 
+        return i; 
+    }
 }
 
 export const FiniteFieldRegistry = {

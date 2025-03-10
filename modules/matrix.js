@@ -154,4 +154,16 @@ export class Matrix {
         return sol; 
     }
 
+    static identity(order, n) {
+        let sol = new Matrix(order, n); 
+        for (let i = 0; i < sol.rows; i++) {
+            sol.contents[i][i] = 1; 
+        }
+        return sol; 
+    }
+
+    static conjugate(delta, g) {
+        return g.invert().mult(delta.mult(g)); 
+    }
+
 }
