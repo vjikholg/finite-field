@@ -165,5 +165,15 @@ export class Matrix {
     static conjugate(delta, g) {
         return g.invert().mult(delta.mult(g)); 
     }
-
+    static isEqual(m1, m2) {
+        if (! (m1.glf.order == m2.glf.order) ) return false; // sufficient 
+        if (! (m1.rows == m2.rows) ) return false; 
+        if (! (m1.cols == m2.cols) ) return false; 
+        for (let i = 0; i < m1.rows; i++) {
+            for (let j = 0; j < m1.cols; j++) {
+                if (! (m1.contents[i][j] == m2.contents[i][j])) return false; 
+            }
+        }
+        return true; 
+    }
 }

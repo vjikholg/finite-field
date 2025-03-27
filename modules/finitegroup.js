@@ -1,26 +1,26 @@
 import {Matrix} from "./matrix";
 import {FiniteFieldRegistry} from "./finitefield"
 
-class FiniteGroup {
+
+export class FiniteGroup {
     /**
      * Represents a finite group. Uses matrices over GL(p^k) or integers over Z/nZ as elements.  
      * @constructor
-     * @param {*} generators 
-     * @param {*} n 
+     * @param {Array} generators either of matrix(ces) or integer(s) over GLFs  
+     * @param {*} n order of the GLF
      */
     constructor(generators, n) { 
         // for our case since we're using groups with |G| < 1000, we can use normal closures to find groups 
         // 
         this.elems = new Array(); // we could potentially use sets, its probably better to convert to set then do stuff 
-        this.order = n;
         this.generators = generators; 
-        this.makeGroup(generators, n); 
+        this.elems = makeGroup(generators, n); 
         this.glf = FiniteFieldRegistry.getField(generators[0].glf.order) //i wonder if i can come up with a better solution
-        
+        this.order = 
     }
 
-    makeGroup(generators, n) {                              // this is horribly inefficient... if |G| was very large.  
-        generators.forEach((mtx) => this.elems.add(mtx));   // we'd just use shreier-sims at that point...
+    makeGroup(generators, n) {                              // large G -> use shreier sims
+        generators.forEach((mtx) => this.elems.add(mtx));   
         generators.forEach((mtx) => this.elems.add(mtx.invert())); 
         let i = 0; 
         while (i < this.elems.length()) {  
@@ -28,10 +28,10 @@ class FiniteGroup {
             for(let g of this.elems) {
 
                 let newElem = curr.mult(g); 
-                let newInvElem = g.invert().mult(curr);     // if only there was a O(n) matrix mult alg... 
+                let newInvElem = g.invert().mult(curr);     
 
                 if (!this.contains(newElem)) {
-                    this.elems.push(newElem)
+                    this.elems.push(newElem);
                 } 
                 if (!this.contains(newInvElem)) {
                     this.elems.push(newInvElem); 
@@ -39,10 +39,6 @@ class FiniteGroup {
             }
             i++; 
         }
-    }
-
-    contains(elem) {
-        return this.elems.includes(elem); 
     }
 
     assertClosed(){ 
@@ -123,10 +119,14 @@ class FiniteGroup {
             if (!delta.contains(gamma)) { 
                 delta.push(gamma); 
                 transversal.push( T[delta.indexOf(d)].mult(g) ); // "append" T[d] * g_i to T
-            }
+            }                                                    // the goal of this is to keep track of the path    
         }
         i++;
     }
     return {w,transversal};
+    }
+
+    static isIsomorphic(g1, g2) {
+        
     }
 }
