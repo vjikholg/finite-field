@@ -1,3 +1,1 @@
-Finite field code intended for use in computational group theory. 
-
-Contains basic algebraic operations over GL(n) for positive integer n. 
+A computational group theory backend representing groups as Matrices over finite fields, or standard finite-fields. 
