@@ -14,9 +14,9 @@ export class FiniteGroup {
         // 
         this.elems = new Array(); // we could potentially use sets, its probably better to convert to set then do stuff 
         this.generators = generators; 
-        this.elems = makeGroup(generators, n); 
+        this.makeGroup(generators, n); 
         this.glf = FiniteFieldRegistry.getField(generators[0].glf.order) //i wonder if i can come up with a better solution
-        this.order = 
+        this.order = this.elems.length; 
     }
 
     makeGroup(generators, n) {                              // large G -> use shreier sims

@@ -48,25 +48,21 @@ test ('Generate Z/5Z multiplicatively, using 1x1 matrices over GF(11)', () => {
 
 test ('Generate the Dihedral group D4, using 2x2 matrices over GL2(Z)', () => {
     let generators = [];
-    let g1, g2 = new Matrix(11,1); 
+    let g1, g2 = new Matrix(11,2); 
+    g1.contents = [[0, -1], [1, 0]]; 
+    g2.contents = [[1, 0], [0, -1]];
+
+    generators.push(g1); 
+
+    generators.push(g2); 
     
-    generators.push([
-        [0, -1],
-        [1, 0]
-    ]); 
-
-    generators.push([
-        [1, 0],
-        [0, -1]
-    ]); 
-
     testElem = []; 
     testElem.push(generators[0].mult())
 
 
     let group = new FiniteGroup(generators, Number.MAX_SAFE_INTEGER); 
     expect(group.order == 8); 
-    
+
 
 
 }
