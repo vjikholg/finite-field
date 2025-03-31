@@ -1,4 +1,5 @@
 import {Matrix} from "./matrix";
+import { FiniteField } from "./finitefield";
 import {FiniteFieldRegistry} from "./finitefield"
 
 
@@ -7,35 +8,46 @@ export class FiniteGroup {
      * Represents a finite group. Uses matrices over GL(p^k) or integers over Z/nZ as elements.  
      * @constructor
      * @param {Array} generators either of matrix(ces) or integer(s) over GLFs  
-     * @param {*} n order of the GLF
+     * @param {Number} n order of the GLF
      */
     constructor(generators, n) { 
         // for our case since we're using groups with |G| < 1000, we can use normal closures to find groups 
         // 
         this.elems = new Array(); // we could potentially use sets, its probably better to convert to set then do stuff 
         this.generators = generators; 
+        this.glf = FiniteFieldRegistry.getField(n) //i wonder if i can come up with a better solution
         this.makeGroup(generators, n); 
-        this.glf = FiniteFieldRegistry.getField(generators[0].glf.order) //i wonder if i can come up with a better solution
         this.order = this.elems.length; 
     }
 
     makeGroup(generators, n) {                              // large G -> use shreier sims
-        generators.forEach((mtx) => this.elems.add(mtx));   
-        generators.forEach((mtx) => this.elems.add(mtx.invert())); 
+        generators.forEach((g) => this.elems.push(g));   
+
+        generators.forEach((g) => this.elems.push(g.invert()));
+
+
+        console.log(this.elems[0]);
+        console.log(this.elems[1]); 
         let i = 0; 
-        while (i < this.elems.length()) {  
-            let curr = elems[i];
+        let curr = this.elems[i];
+
+
+        while (i < this.elems.length) {
+            curr = this.elems[i]; 
             for(let g of this.elems) {
 
                 let newElem = curr.mult(g); 
-                let newInvElem = g.invert().mult(curr);     
+                // let newInvElem = (g.invert()).mult(curr);     
 
-                if (!this.contains(newElem)) {
+                if (!this.elems.includes(newElem)) {
                     this.elems.push(newElem);
                 } 
-                if (!this.contains(newInvElem)) {
+
+                /*
+                if (!this.elems.includes(newInvElem)) {
                     this.elems.push(newInvElem); 
                 }
+                */
             }
             i++; 
         }
@@ -44,7 +56,7 @@ export class FiniteGroup {
     assertClosed(){ 
         for(let g of this.elems) {
             for (let h of this.elems) {
-                this.elems.contains()
+                this.elems.includes()
             }
         }
     }
@@ -116,7 +128,7 @@ export class FiniteGroup {
     for (let d of delta) {
         for (let g of generators) {
             let gamma = g.mult(d);
-            if (!delta.contains(gamma)) { 
+            if (!delta.includes(gamma)) { 
                 delta.push(gamma); 
                 transversal.push( T[delta.indexOf(d)].mult(g) ); // "append" T[d] * g_i to T
             }                                                    // the goal of this is to keep track of the path    

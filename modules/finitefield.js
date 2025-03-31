@@ -3,26 +3,20 @@ export class FiniteField {
         this.order = order; 
         this.elems = new Set(); 
         this.inverses = new Map(); 
-
-        for (let i = 0; i < order; i++) {
-            this.elems.add(i); 
-        }   
+        if (order != Number.MAX_SAFE_INTEGER) { 
+            for (let i = 0; i < order; i++) {
+                this.elems.add(i); 
+            }   
+        }
     } 
     
     static gcd = function (a,b) { 
         if (!b) { 
             return a; 
         }
-        return gcd(a, a % b); 
+        return FiniteField.gcd(a, a % b); 
     }   
 
-    member(i) {
-        if (Math.abs(i) >= order) { 
-            return false; 
-        } else {
-            return (this.elems.has(i)); 
-        }
-    }
 
     add(i,j) { 
         if ((i+j) < 0) {
@@ -63,11 +57,20 @@ export class FiniteField {
     }
 
     invertible(i) { 
-        return (this.gcd(i,this.order) == 1); 
+        return (FiniteField.gcd(i, this.order) == 1); 
     }
 
-    invert(i) { 
+    invert(i) {
+        if (i == -1)  {  // special case of FLT 
+            return -1; 
+        }
+
+        if (this.order == Number.MAX_SAFE_INTEGER) { 
+            return 0; // integers not multiplicatively invertible, unless 1 or -1 
+        }
+        
         var inv = 0; 
+
         if (this.invertible(i)) { // should try and figure out check only once for invertibility 
             for (; inv < this.order; inv++) { 
                 if ((inv * j) % this.order == 1) { 
