@@ -58,21 +58,35 @@ export class Matrix {
         // mtx.assertNonEmpty(50); 
         // this.assertMultCompat(mtx, 51);
         
-        let temp = new Array();
-        temp = this.contents.slice();  
-        
+
+        let sol = new Matrix(this.glf.order, this.rows, mtx.cols); 
         for (let i = 0; i < this.rows; i++) {
-            for (let j = 0; j < this.cols; j++) { 
-                for (let k = 0; k < this; k++) {
-                    this.contents[i][j] += temp.contents[i][k] * mtx.contents[k][j]; 
+            for (let j = 0; j < mtx.cols; j++) { 
+                for (let k = 0; k < this.cols; k++) {
+                    sol.contents[i][j] += (this.contents[i][k] * mtx.contents[k][j]); 
                 }
-                this.contents[i][j] % this.glf.order; 
+                sol.contents[i][j] = this.glf.representative(sol.contents[i][j]); 
             }
         }
+
+        return sol; 
+
+        /*
+        temp = this.contents.slice();  
+        console.log("multiplying: " + this.contents + " and " + mtx.contents); 
+        for (let i = 0; i < this.rows; i++) {
+            for (let j = 0; j < mtx.cols; j++) { 
+                for (let k = 0; k < this.cols; k++) {
+                    this.contents[i][j] += temp.contents[i][k] * mtx.contents[k][j]; 
+                }
+                this.contents[i][j] = this.glf.representative(this.contents[i][j]); 
+            }
+        }
+        */
     }
 
-    power = function(m1, n) {
-        sol = m1; 
+    static power(m1, n) {
+        let sol = m1; 
         for (let i = 0; i < n-1; i++) {
             sol *= m1; 
         }
@@ -111,6 +125,7 @@ export class Matrix {
             }
             si++;
         }
+        // console.log(sol.contents);
         return sol; 
     }
     
@@ -129,8 +144,9 @@ export class Matrix {
         return sol; 
     }
 
-
+    
     cofactor = function() { 
+        // console.log("taking cofactor of: " + this.contents);
         this.assertSquare(127); 
         if (this.rows == 1) {
             return this; 
@@ -139,39 +155,41 @@ export class Matrix {
         let sol = new Matrix(this.glf.order, this.rows, this.cols); 
         for (let i = 0; i < this.rows; i++) {
             for (let j = 0; j < this.cols; j++) {
-                sol.contents[i][j] = this.subMatrix(i,j).det(); 
+                sol.contents[i][j] = this.glf.representative( (this.subMatrix(i,j).det() * ((-1) ** (i+j))) ) ; 
             }
         }
         return sol; 
     }
 
+
     adjugate = function() { 
-        let sol = this 
         return this.cofactor().transpose(); 
     }
 
     invert = function() { // finally, moment of truth!
-        console.log("given matrix is: "); 
-        console.log(this);
+        // console.log("given matrix is: " + this); 
         if (this.elems == [[-1]]) {
-            sol = new Matrix(this.order, 1); 
-            sol.contents = [[-1]];
-            return sol; 
+            return this;
         } 
 
         let adj = this.adjugate(); 
-        console.log("this is adjugate: " + adj); 
+        // console.log("this is adjugate: " + adj.contents); 
         let det = this.det(); 
-        console.log(det); 
+        // console.log("this is det " + det); 
         let invdet = this.glf.invert(det);
-        let sol = new Matrix(this.order, this.rows, this.cols);
+        // console.log("this is invdet " + invdet); 
+        let sol = new Matrix(this.glf.order, this.rows);
+
+        // console.log("this is sol contents: " + sol.contents);
+        // console.log(sol);
         
         for (let i = 0; i < sol.rows; i++) {
             for (let j = 0; j < sol.cols; j++) {
-                sol[i][j] = this.glf.mult(adj.contents[i][j], invdet); 
+
+                sol.contents[i][j] = this.glf.representative(adj.contents[i][j] * invdet); 
             }
         }
-        
+        // console.log("this is sol contents: " + sol.contents);
         return sol; 
     }
 
@@ -188,14 +206,36 @@ export class Matrix {
     }
     
     static isEqual(m1, m2) {
-        if (! (m1.glf.order == m2.glf.order) ) return false; // sufficient 
-        if (! (m1.rows == m2.rows) ) return false; 
-        if (! (m1.cols == m2.cols) ) return false; 
+        // return JSON.stringify(m1.contents) === JSON.stringify(m2.contents);
+        
+        // console.log("comparing: " + m1.contents + " to: " + m2.contents);
+
+        if (! (m1.glf.order == m2.glf.order) ){
+            console.log("incorrect order!: " + m1.glf.order + " vs. " + m2.glf.order );
+            return false; // sufficient 
+        } 
+        if (! (m1.rows == m2.rows) ) {
+            console.log("incorrect rows!"); 
+            return false; 
+        } 
+
+        if (! (m1.cols == m2.cols) ) {
+            console.log("incorrect columns")
+            return false; 
+        }
+            
+
         for (let i = 0; i < m1.rows; i++) {
             for (let j = 0; j < m1.cols; j++) {
-                if (! (m1.contents[i][j] == m2.contents[i][j])) return false; 
+                // console.log("comparing " + m1.contents[i][j] + " to " + m2.contents[i][j]);
+                if (( (m1.contents[i][j])  !== (m2.contents[i][j]) % m2.glf.order)) {
+                    console.log(`Mismatch at (${i}, ${j}): ${m1.contents[i][j]} !== ${m2.contents[i][j]}`)
+                    return false; 
+                } 
             }
         }
+
         return true; 
+        
     }
 }

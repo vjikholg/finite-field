@@ -1,4 +1,4 @@
-import {Matrix} from "./matrix";
+import { Matrix } from "./matrix";
 import { FiniteField } from "./finitefield";
 import {FiniteFieldRegistry} from "./finitefield"
 
@@ -10,47 +10,41 @@ export class FiniteGroup {
      * @param {Array} generators either of matrix(ces) or integer(s) over GLFs  
      * @param {Number} n order of the GLF
      */
-    constructor(generators, n) { 
+    constructor(generator, n) { 
         // for our case since we're using groups with |G| < 1000, we can use normal closures to find groups 
         // 
-        this.elems = new Array(); // we could potentially use sets, its probably better to convert to set then do stuff 
-        this.generators = generators; 
+        this.elems = []; // we could potentially use sets, its probably better to convert to set then do stuff 
+        this.generators = generator; 
         this.glf = FiniteFieldRegistry.getField(n) //i wonder if i can come up with a better solution
-        this.makeGroup(generators, n); 
+        this.makeGroup(generator, n); 
         this.order = this.elems.length; 
     }
 
-    makeGroup(generators, n) {                              // large G -> use shreier sims
-        generators.forEach((g) => this.elems.push(g));   
-
-        generators.forEach((g) => this.elems.push(g.invert()));
-
-
-        console.log(this.elems[0]);
-        console.log(this.elems[1]); 
+    makeGroup(generators) {                              // large G -> use shreier sims
+        this.elems = [...generators];
         let i = 0; 
-        let curr = this.elems[i];
-
+        console.log(this.elems);
+        console.log(this.elems[0]);
 
         while (i < this.elems.length) {
-            curr = this.elems[i]; 
-            for(let g of this.elems) {
+            let curr = this.elems[i]; 
+            console.log(curr); 
 
+            this.elems.forEach( (g) => {    
+                console.log("processing: " + curr.contents + " and " + g.contents); 
                 let newElem = curr.mult(g); 
-                // let newInvElem = (g.invert()).mult(curr);     
-
-                if (!this.elems.includes(newElem)) {
+                console.log(newElem); 
+                if (!this.contains(newElem)) {
+                    console.log("we dont have: " + g.contents + ", pushing...");
                     this.elems.push(newElem);
                 } 
-
-                /*
-                if (!this.elems.includes(newInvElem)) {
-                    this.elems.push(newInvElem); 
-                }
-                */
-            }
+            })
             i++; 
         }
+    }
+
+    contains(g) {
+        return this.elems.some((elem) => Matrix.isEqual(g,elem));
     }
 
     assertClosed(){ 

@@ -10,17 +10,17 @@ export class FiniteField {
         }
     } 
     
-    static gcd = function (a,b) { 
-        if (!b) { 
+    static gcd = function (a, mod) { 
+        if (mod == 0) { 
             return a; 
         }
-        return FiniteField.gcd(a, a % b); 
+        return FiniteField.gcd(mod, a % mod); 
     }   
 
 
     add(i,j) { 
         if ((i+j) < 0) {
-            var num = i + j; 
+            let num = i + j; 
             while (num < 0) {
                 num += this.order; 
             }
@@ -34,7 +34,7 @@ export class FiniteField {
 
     subtract(i,j) { 
         if ((i-j < 0)) { 
-            var num = i - j; 
+            let num = i - j; 
             while (num < 0) { 
                 num += this.order; 
             }
@@ -46,7 +46,7 @@ export class FiniteField {
 
     mult(i, j) { 
         if (i * j < 0) { 
-            var num = i * j; 
+            let num = i * j; 
             while (num < 0) { 
                 num += this.order; 
             }
@@ -61,29 +61,39 @@ export class FiniteField {
     }
 
     invert(i) {
+        if (this.inverses.has(i)) return this.inverses.get(i);
+
         if (i == -1)  {  // special case of FLT 
             return -1; 
         }
 
-        if (this.order == Number.MAX_SAFE_INTEGER) { 
+        if (this.order === Number.MAX_SAFE_INTEGER) { 
             return 0; // integers not multiplicatively invertible, unless 1 or -1 
         }
         
-        var inv = 0; 
+
+        if (i < 0) {
+            i = FiniteField.representative(i);
+        }
+        // console.log("given inverting value is: " + i);
+
+        let inv = null; 
 
         if (this.invertible(i)) { // should try and figure out check only once for invertibility 
-            for (; inv < this.order; inv++) { 
-                if ((inv * j) % this.order == 1) { 
-                    break; 
-                }
+            for (let j = 1; j < this.order; j++) { 
+                if ((j * i) % this.order === 1) {
+                    inv = j;
+                    break;
+                } 
             }
-            this.inverses.add(i, inv); 
         }
+
+        this.inverses.set(i, inv); 
         return inv; 
     }
 
     division(i, j) { // i 'divided' by j, finite field multiplication really 
-        var inv = 0;                   
+        let  inv = 0;                   
         if (this.invertible(j)) { 
             inv = invert(j); 
         }
@@ -93,6 +103,19 @@ export class FiniteField {
     static conjugate(i,j) { // conjugation over finite fields is the identity map. 
         return i; 
     }
+
+    representative(i) { 
+        if (this.order === Number.MAX_SAFE_INTEGER) { 
+            return i; 
+        } else if (this.elems.has(i)) {
+            return i; 
+        } else if (i < 0) {
+            while (i < 0) i += this.order; // if order is MAX-SAFE_INTEGER need to be careful 
+            return i % this.order; 
+        } else {
+            return i % this.order; 
+        }
+    }   
 }
 
 export const FiniteFieldRegistry = {
