@@ -7,7 +7,7 @@ export class FiniteGroup {
     /**
      * Represents a finite group. Uses matrices over GL(p^k) or integers over Z/nZ as elements.  
      * @constructor
-     * @param {Array} generators either of matrix(ces) or integer(s) over GLFs  
+     * @param {Array} generators matrix(ces) over GLFs  
      * @param {Number} n order of the GLF
      */
     constructor(generator, n) { 
@@ -23,17 +23,16 @@ export class FiniteGroup {
     makeGroup(generators) {                              // large G -> use shreier sims
         this.elems = [...generators];
         let i = 0; 
-        console.log(this.elems);
-        console.log(this.elems[0]);
+        // console.log(this.elems);
+        // console.log(this.elems[0]);
 
         while (i < this.elems.length) {
             let curr = this.elems[i]; 
-            console.log(curr); 
+            // console.log(curr); 
 
             this.elems.forEach( (g) => {    
-                console.log("processing: " + curr.contents + " and " + g.contents); 
+                // console.log("processing: " + curr.contents + " and " + g.contents); 
                 let newElem = curr.mult(g); 
-                console.log(newElem); 
                 if (!this.contains(newElem)) {
                     console.log("we dont have: " + g.contents + ", pushing...");
                     this.elems.push(newElem);
@@ -47,12 +46,38 @@ export class FiniteGroup {
         return this.elems.some((elem) => Matrix.isEqual(g,elem));
     }
 
-    assertClosed(){ 
-        for(let g of this.elems) {
-            for (let h of this.elems) {
-                this.elems.includes()
+    static assertClosed(group){ 
+        for(let g of group.elems) {
+            for (let h of group.elems) {
+                let temp = g.mult(h); 
+                if(!group.contains(temp)) {
+                    console.log("g: " + g.contents + "h: " + h.contents + " do not exist!");
+                    return false; 
+                }
             }
         }
+        return true; 
+    }
+
+    static assertInverse(group) {
+        for (let g of group.elems) { 
+            let temp = g.invert(); 
+            if (!group.contains(temp)) {
+                console.log("group does not contain inverse of g: " + g.contents + ", " + temp.contents);
+                return false; 
+            }
+        }
+        return true; 
+    }
+
+    static assertIdentityExist(group) { 
+        const id = Matrix.identity(group.glf.order, group.elems[0].rows); 
+        return (group.contains(id));
+    }
+
+    static assertGroup(group) {
+        return FiniteGroup.assertInverse(group) && FiniteGroup.assertIdentityExist(group) && FiniteGroup.assertClosed(group); 
+        // associativity trivial given rep. by matrix, so dont need to check
     }
 
     /**

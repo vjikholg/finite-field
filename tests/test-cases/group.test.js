@@ -4,9 +4,12 @@ import { FiniteFieldRegistry } from "../../modules/finitefield";
 
 test ('Generate Z/2Z multiplicatively', () => {
     let generators = []; 
-    let g1 = new Matrix(1, 1); 
-    let g2 = Matrix.identity(1, 1);
+    let g1 = new Matrix(Number.MAX_SAFE_INTEGER, 1); 
+    let g2 = Matrix.identity(Number.MAX_SAFE_INTEGER, 1); 
+
+
     g1.contents = [[-1]];
+    console.log(g1.mult(g1));
     // console.log(g1.invert().contents); 
     generators.push(g1); 
 
@@ -15,78 +18,51 @@ test ('Generate Z/2Z multiplicatively', () => {
     // console.log(group.elems); 
 
     expect(group.order == 2).toBe(true);
-    group.elems.forEach((g) => console.log(g)); 
-    
-    // expect(group.elems.some(e => Matrix.isEqual(e, g1.contents))).toBe(true);
-    // expect(group.elems.some(e => Matrix.isEqual(e, g2.contents))).toBe(true);
+    expect(FiniteGroup.assertClosed(group)).toBe(true);
+    expect(FiniteGroup.assertInverse(group)).toBe(true);
+    expect(FiniteGroup.assertIdentityExist(group)).toBe(true);
 })
 
 
-/*
-test ('Generate Z/5Z multiplicatively using integers over Z', () => {
-    let generators = []; 
-    let gl11 = FiniteFieldRegistry.getField(11); 
-    generators.push(gl11.elems[4]); 
+
+test ('Generate Z/5Z multiplicatively using integers over Z/11Z', () => {
+    let g1 = new Matrix(11, 1); 
+    g1.contents = [[4]]; 
+    let generators = [];
+    generators.push(g1);  
 
     let group = new FiniteGroup(generators, 11); 
 
-    expect(group.order == 11); 
-    for (let i = 0; i < 11; i++) {
-        expect(group.elems.contains(i)); 
-    }
+    expect(group.order).toBe(5); 
+    expect(FiniteGroup.assertClosed(group)).toBe(true);
+    expect(FiniteGroup.assertInverse(group)).toBe(true);
+    expect(FiniteGroup.assertIdentityExist(group)).toBe(true);
+
 
 })
 
-test ('Generate Z/5Z multiplicatively, using 1x1 matrices over GF(11)', () => {
-    let generators = []; 
-    let g1 = new Matrix(11,1); 
-    g1.contents = [
-        [4]
-    ];
-
-    generators.push(g1);
-
-    let group = new FiniteGroup(generators, 11); 
-    
-    expect(group.order == 11); 
-    for (let i = 0; i < 11; i++) { 
-        expect(groups.elems.contains([i])); 
-    }
-
-})
 // first non-trivial test 
 test ('Generate the Dihedral group D4, using 2x2 matrices over GL2(Z)', () => {
     let generators = [];
-    let g1, g2 = new Matrix(11,2); 
+
+    let g1 = new Matrix(Number.MAX_SAFE_INTEGER,2);
+    let g2 = new Matrix(Number.MAX_SAFE_INTEGER,2);  
+
     g1.contents = [[0, -1], [1, 0]]; 
     g2.contents = [[1, 0], [0, -1]];
 
     generators.push(g1); 
-
     generators.push(g2); 
-
-    testElem = []; 
-    testElem.push(generators[0].mult())
-
 
     let group = new FiniteGroup(generators, Number.MAX_SAFE_INTEGER); 
 
-    expect(group.order == 8); 
-    expect(group.elems.contains(Matrix.identity(Number.MAX_SAFE_INTEGER, 2))); 
-    expect(group.elems.contains(g1)); 
-    expect(group.elems.contains(power(g1, 2))); 
-    expect(group.elems.contains(power(g1, 3))); // g1 has order 4 
-    expect(group.elems.contains(g2)); // g2 has order 2 
-    
-    expect(group.elems.contains(g1.mult(g2))); 
-    expect(group.elems.conains(g2.mult(g1))); 
-
-
-
-
-    
+    expect(group.order).toEqual(8);
+    expect(FiniteGroup.assertClosed(group)).toBe(true);
+    expect(FiniteGroup.assertInverse(group)).toBe(true);
+    expect(FiniteGroup.assertIdentityExist(group)).toBe(true);
 
 
 }
 )
-*/
+
+

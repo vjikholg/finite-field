@@ -229,7 +229,7 @@ export class Matrix {
             for (let j = 0; j < m1.cols; j++) {
                 // console.log("comparing " + m1.contents[i][j] + " to " + m2.contents[i][j]);
                 if (( (m1.contents[i][j])  !== (m2.contents[i][j]) % m2.glf.order)) {
-                    console.log(`Mismatch at (${i}, ${j}): ${m1.contents[i][j]} !== ${m2.contents[i][j]}`)
+                    // console.log(`Mismatch at (${i}, ${j}): ${m1.contents[i][j]} !== ${m2.contents[i][j]}`)
                     return false; 
                 } 
             }

@@ -158,6 +158,36 @@ test('inversion should return correct matrix', () =>  {
   expect(inv.contents) == [[-1]]; 
   })
 
+test('taking submatrx of 2x2 matrices should return proper minors', () => {
+  const matrix = new Matrix(Number.MAX_SAFE_INTEGER, 2); 
+  matrix.contents = [[1, 2], [3, 4]]; 
+  expect(matrix.subMatrix(1,1).contents).toEqual([4]); 
+  expect(matrix.subMatrix(1,1).contents).toEqual([4]); 
 
+
+
+}) 
+
+
+test('inverting [-1 0; 0 1] should return [0 1; -1 0]', () => { 
+  const matrix = new Matrix(Number.MAX_SAFE_INTEGER, 2);
+  matrix.contents = [[0, -1], [1, 0]]; 
+
+
+  const adj = matrix.adjugate(); 
+  const inverse = matrix.invert(); 
+  
+
+  const test = new Matrix(Number.MAX_SAFE_INTEGER, 2); 
+  test.contents = [[0, 1], [-1, 0]];
+
+
+  expect(matrix.det()).toEqual(1);
+
+
+
+  expect(Matrix.isEqual(inverse, test)).toBe(true);
+
+})
 
 
