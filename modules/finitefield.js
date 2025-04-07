@@ -63,8 +63,8 @@ export class FiniteField {
     invert(i) {
         if (this.inverses.has(i)) return this.inverses.get(i);
 
-        if (i == -1)  {  // special case of FLT 
-            return -1; 
+        if (i == -1 || i == 1)  {  // special case of FLT 
+            return i; 
         }
 
         if (this.order === Number.MAX_SAFE_INTEGER) { 
@@ -73,7 +73,7 @@ export class FiniteField {
         
 
         if (i < 0) {
-            i = FiniteField.representative(i);
+            i = this.representative(i);
         }
         // console.log("given inverting value is: " + i);
 

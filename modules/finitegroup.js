@@ -10,9 +10,10 @@ export class FiniteGroup {
      * @param {Array} generators matrix(ces) over GLFs  
      * @param {Number} n order of the GLF
      */
-    constructor(generator, n) { 
+    constructor(generator, n, name) { 
         // for our case since we're using groups with |G| < 1000, we can use normal closures to find groups 
         // 
+        this.name = name; 
         this.elems = []; // we could potentially use sets, its probably better to convert to set then do stuff 
         this.generators = generator; 
         this.glf = FiniteFieldRegistry.getField(n) //i wonder if i can come up with a better solution
@@ -34,7 +35,7 @@ export class FiniteGroup {
                 // console.log("processing: " + curr.contents + " and " + g.contents); 
                 let newElem = curr.mult(g); 
                 if (!this.contains(newElem)) {
-                    console.log("we dont have: " + g.contents + ", pushing...");
+                    // console.log("we dont have: " + g.contents + ", pushing...");
                     this.elems.push(newElem);
                 } 
             })
@@ -43,14 +44,22 @@ export class FiniteGroup {
     }
 
     contains(g) {
+        // console.log("checking if: :" + g.contents + " is contained in group: " + this.name); 
         return this.elems.some((elem) => Matrix.isEqual(g,elem));
     }
 
     static assertClosed(group){ 
+        const map = new Map(); 
+        group.elems.forEach((g) => map.set(g.contents, true)); 
+
+        function mapContains(g) {
+            return map.get(g) || false; // from O(n) -> O(1). 
+        }
+
         for(let g of group.elems) {
             for (let h of group.elems) {
                 let temp = g.mult(h); 
-                if(!group.contains(temp)) {
+                if(mapContains(temp.contents)) {
                     console.log("g: " + g.contents + "h: " + h.contents + " do not exist!");
                     return false; 
                 }
@@ -157,7 +166,13 @@ export class FiniteGroup {
     return {w,transversal};
     }
 
-    static isIsomorphic(g1, g2) {
+
+    /**
+     * this'll need more research - 
+     * @param {*} g1 
+     * @param {*} g2 
+     */
+    static isIsomorphic(g1, g2) { 
         
     }
 }

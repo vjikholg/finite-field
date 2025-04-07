@@ -161,11 +161,33 @@ export class Matrix {
         return sol; 
     }
 
-
+    /**
+     * 
+     * @returns 
+     */
     adjugate = function() { 
+        /*
+        if (this.rows === 2 && this.cols === 2) { 
+            let sol = new Matrix(this.glf.order, 2, 2); 
+
+            let t = this.contents; 
+
+            sol.contents = [
+                [t[1][1], this.glf.representative(-t[0][1])]
+                [this.glf.representative(-t[1][0]), t[0][0]]]
+
+            return sol; 
+        } else {
+            return this.cofactor().transpose(); 
+        }
+        */ 
         return this.cofactor().transpose(); 
     }
 
+    /**
+     * 
+     * @returns 
+     */
     invert = function() { // finally, moment of truth!
         // console.log("given matrix is: " + this); 
         if (this.elems == [[-1]]) {
@@ -176,7 +198,7 @@ export class Matrix {
         // console.log("this is adjugate: " + adj.contents); 
         let det = this.det(); 
         // console.log("this is det " + det); 
-        let invdet = this.glf.invert(det);
+        let invdet = this.glf.invert(det);  
         // console.log("this is invdet " + invdet); 
         let sol = new Matrix(this.glf.order, this.rows);
 
@@ -193,6 +215,12 @@ export class Matrix {
         return sol; 
     }
 
+    /**
+     * 
+     * @param {*} order 
+     * @param {*} n 
+     * @returns 
+     */
     static identity(order, n) {
         let sol = new Matrix(order, n); 
         for (let i = 0; i < sol.rows; i++) {
@@ -205,7 +233,15 @@ export class Matrix {
         return g.invert().mult(delta.mult(g)); 
     }
     
-    static isEqual(m1, m2) {
+
+    /**
+     * Manual deep equality since i dont trust JSON.stringify 
+     * @param {Matrix} m1 to be compared
+     * @param {Matrix} m2 to be compared
+     * @returns {Boolean} checking if m1 === m2 in terms of the order of its finite field + checking if 
+     * contents are representatives of the same element over some finite field, i.e. 4 == 2 == 0 in Z/2Z
+     */
+    static isEqual(m1, m2) { 
         // return JSON.stringify(m1.contents) === JSON.stringify(m2.contents);
         
         // console.log("comparing: " + m1.contents + " to: " + m2.contents);
