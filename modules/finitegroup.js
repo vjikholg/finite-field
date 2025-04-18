@@ -21,6 +21,7 @@ export class FiniteGroup {
         this.order = this.elems.length; 
     }
 
+
     makeGroup(generators) {                              // large G -> use shreier sims
         this.elems = [...generators];
         let i = 0; 
