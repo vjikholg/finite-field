@@ -15,7 +15,17 @@ export class Matrix {
         for (let i = 0; i < m; i++) {
             this.contents[i] = new Array(this.cols).fill(0); 
         }
+        this._key = null; 
     }
+
+    get key() { 
+        if (this._key === null) { 
+            // flatten by row and join w/ delimiter
+            this._key = this.contents.map(r => r.join(',')).join('|');
+        } 
+        return this._key; 
+    }
+
 
     assert(con, msg, ln) {
         if (!con) { 

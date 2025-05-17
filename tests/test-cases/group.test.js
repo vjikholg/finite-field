@@ -1,5 +1,5 @@
 import { Matrix } from "../../modules/matrix";
-import { FiniteGroup } from "../../modules/finitegroup";
+import { FiniteGroup, assertClosed, assertIdentityExist, assertInverse} from "../../modules/finitegroup";
 import { FiniteFieldRegistry } from "../../modules/finitefield";
 
 test ('Generate Z/2Z multiplicatively', () => {
@@ -18,9 +18,9 @@ test ('Generate Z/2Z multiplicatively', () => {
     // group.elems.forEach((g) => console.log(g.contents)); 
 
     expect(group.order == 2).toBe(true);
-    expect(FiniteGroup.assertClosed(group)).toBe(true);
-    expect(FiniteGroup.assertInverse(group)).toBe(true);
-    expect(FiniteGroup.assertIdentityExist(group)).toBe(true);
+    expect(assertClosed(group)).toBe(true);
+    expect(assertInverse(group)).toBe(true);
+    expect(assertIdentityExist(group)).toBe(true);
 })
 
 
@@ -34,9 +34,9 @@ test ('Generate Z/5Z multiplicatively using integers over Z/11Z', () => {
     let group = new FiniteGroup(generators, 11, "Z/11Z"); 
 
     expect(group.order).toBe(5); 
-    expect(FiniteGroup.assertClosed(group)).toBe(true);
-    expect(FiniteGroup.assertInverse(group)).toBe(true);
-    expect(FiniteGroup.assertIdentityExist(group)).toBe(true);
+    expect(assertClosed(group)).toBe(true);
+    expect(assertInverse(group)).toBe(true);
+    expect(assertIdentityExist(group)).toBe(true);
 
 
 })
@@ -55,11 +55,13 @@ test ('Generate the Dihedral group D4, using 2x2 matrices over GL2(Z)', () => {
     generators.push(g2); 
 
     let group = new FiniteGroup(generators, Number.MAX_SAFE_INTEGER, "Dihedral D4"); 
+    // console.log(group.elems.check()); 
+
 
     expect(group.order).toEqual(8);
-    expect(FiniteGroup.assertClosed(group)).toBe(true);
-    expect(FiniteGroup.assertInverse(group)).toBe(true);
-    expect(FiniteGroup.assertIdentityExist(group)).toBe(true);
+    expect(assertClosed(group)).toBe(true);
+    expect(assertInverse(group)).toBe(true);
+    expect(assertIdentityExist(group)).toBe(true);
 
 
 })
@@ -82,9 +84,9 @@ test ('generate the Quaternions Q8 using 2x2 matrices over GL2(Z/3Z)', () => {
 
     // group.elems.forEach((g) => console.log(g.contents));
 
-    expect(FiniteGroup.assertClosed(group)).toBe(true);
-    expect(FiniteGroup.assertInverse(group)).toBe(true);
-    expect(FiniteGroup.assertIdentityExist(group)).toBe(true);
+    expect(assertClosed(group)).toBe(true);
+    expect(assertInverse(group)).toBe(true);
+    expect(assertIdentityExist(group)).toBe(true);
     expect(group.order).toEqual(8);
 })
 
@@ -119,9 +121,9 @@ test ('generate the DP of C2 and SDP of C4, C4 using 4x4 matrices over GL4(Z/5Z)
     let group = new FiniteGroup(generators, 5, "DP of C2 and SDP(C4,C4)"); 
 
     // group.elems.forEach((g) => console.log(g.contents));
-    expect(FiniteGroup.assertClosed(group)).toBe(true);
-    expect(FiniteGroup.assertInverse(group)).toBe(true);
-    expect(FiniteGroup.assertIdentityExist(group)).toBe(true);
+    expect(assertClosed(group)).toBe(true);
+    expect(assertInverse(group)).toBe(true);
+    expect(assertIdentityExist(group)).toBe(true);
     expect(group.order).toEqual(32);
 })
 

@@ -1,38 +1,32 @@
 import { Matrix } from "./matrix";
-import { indexedSet } from "./structs/indexedset";
 
 export class FiniteGroup {
     /**
      * Represents a finite group. Uses matrices over GL(p^k) or integers over Z/nZ as elements.  
      * @constructor
-     * @param {Array} generators matrix(ces) over GLFs  
-     * @param {Number} n order of the GLF
+     * @param {Array} generators - matrix(ces) over GLFs 
+     * @param {String} name - name or tag of the group 
      */
     constructor(generator, name) { 
         this.name = name; 
-        this.elems = new indexedSet()
-        this.elems.set(generator); 
-        
-        // keeps initial length of elems - keep index of generators rather than generators themselves
-        this.generators = [];
-
+        this.elems = generator; // TODO: convert to indexed set later 
+        this.generators = Array.from(Array(this.elems.length).keys()); // keeps initial length of elems - keep index of generators rather than generators themselves
         this.makeGroup(); 
-        this.order = this.elems.size; 
+        this.order = this.elems.length; 
     }
 
     makeGroup() {                              // large G -> use shreier sims
         let i = 0; 
-        while (i < this.elems.size) {        // want this to dynamically update at the start of each loop
-            let curr = this.elems.get(i); 
+        while (i < this.elems.length) {
+            let curr = this.elems[i]; 
             // console.log(curr); 
 
             this.elems.forEach( (g) => {    
                 // console.log("processing: " + curr.contents + " and " + g.contents); 
                 let newElem = curr.mult(g); 
-                // console.log(newElem);
                 if (!this.contains(newElem)) {
                     // console.log("we dont have: " + g.contents + ", pushing...");
-                    this.elems.add(newElem);
+                    this.elems.push(newElem);
                 } 
             })
             i++; 
@@ -41,7 +35,7 @@ export class FiniteGroup {
 
     contains(g) {
         // console.log("checking if: :" + g.contents + " is contained in group: " + this.name); 
-        return this.elems.has(g); 
+        return this.elems.some((elem) => Matrix.isEqual(g,elem));
     }
 
 
@@ -82,8 +76,8 @@ export class FiniteGroup {
      * @param {Matrix, number} w - positive integer over a finite field 
      * @returns orbit of w under G-action by right multiplication 
      */
-    static orbitRight(generators, w) { 
-        let delta = [w]; // not too large so we can use an array instead of an indexed set 
+    static orbitRight(generators, w) {
+        let delta = [w]; 
         for (let d of delta) {
             for (let g of generators) {
                 let gamma = d.mult(g);  
@@ -108,7 +102,7 @@ export class FiniteGroup {
     static transversal(generators, w) { 
     let delta = [w];
     let id = Matrix.identity(generators[0].rows, generator[0].glf.order); 
-    let transversal = [id];
+    let transversal = {id};
     let i = 0; 
     for (let d of delta) {
         for (let g of generators) {
@@ -122,18 +116,24 @@ export class FiniteGroup {
     }
     return {w,transversal};
     }
-}
 
+}
 /** 
  * @param {FiniteGroup} group - a finite group represented by matrices over finite fields. 
  * assertClosed goes through the entire group to check that its multiplicatively closed (since we're using matrix mult.)
  * 
  */ 
 export function assertClosed(group){ 
+    const map = new Map(); 
+    function mapContains(g) {
+        return map.get(g) || false; // from O(n) -> O(1). 
+    }
     for(let g of group.elems) {
         for (let h of group.elems) {
+            map.set(g.contents, true); 
+            map.set(h.contents, true); 
             let temp = g.mult(h); 
-            if(!group.elems.has(temp)) {
+            if(mapContains(temp.contents)) {
                 console.log("g: " + g.contents + "h: " + h.contents + " do not exist!");
                 return false; 
             }
@@ -149,7 +149,7 @@ export function assertClosed(group){
 export function assertInverse(group) { // yeah this is legit O(|G|^2) garbage fixed using indexed set though
     for (let g of group.elems) { 
         let temp = g.invert(); 
-        if (!group.contains(temp)) { // indexed set takes this from O(|G|) -> O(1) lookup  
+        if (!group.contains(temp)) {
             console.log("group does not contain inverse of g: " + g.contents + ", " + temp.contents);
             return false; 
         }
@@ -162,7 +162,7 @@ export function assertInverse(group) { // yeah this is legit O(|G|^2) garbage fi
  * assert Identity ensures that we have an identity element in the group, i.e., I_n over GL(k) or similar 
  */
 export function assertIdentityExist(group) { 
-    const id = Matrix.identity(group.elems.get(0).glf.order, group.elems.get(0).rows); // yet another garbage line but whatever
+    const id = Matrix.identity(group.elems[0].glf.order, group.elems[0].rows); 
     return (group.contains(id));
 }
 
