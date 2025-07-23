@@ -1,7 +1,7 @@
 import { Matrix } from "../../modules/matrix";
 import { FiniteGroup, assertGroup } from "../../modules/finitegroup";
 
-const allGroups = require('../../data/output.json')
+const allGroups = require('../../data/output_order500.json')
 // const groupInfo = JSON.parse(json); 
 const groupTest = function(group) { 
     return assertGroup(group); 
@@ -18,7 +18,7 @@ describe(" 'generating all groups' ", () => {
                 temp.contents = mtx; 
                 return temp; 
                 });
-
+            console.log(`testing group: ${name}`)
             let group = new FiniteGroup(mtc, name); 
             expect(group.order).toEqual(order); 
             expect(groupTest(group)).toBe(true); 
