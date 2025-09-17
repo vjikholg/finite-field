@@ -7,6 +7,7 @@ const groupTest = function(group) {
     return assertGroup(group); 
 }
 
+
 describe(" 'generating all groups' ", () => {
     test.each(allGroups) ( 
         "testing %p to assert each generates a group of specified order", 
@@ -22,6 +23,7 @@ describe(" 'generating all groups' ", () => {
             let group = new FiniteGroup(mtc, name); 
             expect(group.order).toEqual(order); 
             expect(groupTest(group)).toBe(true); 
-        }
+        }, 
+        1000
     )
 })

@@ -14,24 +14,26 @@ export class FiniteGroup {
         this.elems.set(generator); 
         
         // keeps initial length of elems - keep index of generators rather than generators themselves
-        this.generators = [];
-
+        this.generators = Array.from((Array(generator.length).keys()));
         this.makeGroup(); 
         this.order = this.elems.size; 
     }
 
-    makeGroup() {                              // large G -> use shreier sims
+    makeGroup() {                              
         let i = 0; 
-        while (i < this.elems.size) {        // want this to dynamically update at the start of each loop
-            let curr = this.elems.get(i); 
-            // console.log(curr); 
+        let stepSet = this.generators.map((i) => this.elems.get(i))
+        
+        this.generators.forEach((gIndex) => {
+            let inv = this.elems.get(gIndex).invert();
+            stepSet.push(inv);
+            this.elems.add(inv);
+        })
 
-            this.elems.forEach( (g) => {    
-                // console.log("processing: " + curr.contents + " and " + g.contents); 
-                let newElem = curr.mult(g); 
-                // console.log(newElem);
-                if (!this.contains(newElem)) {
-                    // console.log("we dont have: " + g.contents + ", pushing...");
+        while (i < this.elems.size) {        
+            let curr = this.elems.get(i); 
+            stepSet.forEach( (g) => {               // O(G^{2s}), where s = |S|, slightly better than O(G^|G|) 
+                let newElem = curr.mult(g);         
+                if (!this.contains(newElem)) {      
                     this.elems.add(newElem);
                 } 
             })
@@ -59,10 +61,10 @@ export class FiniteGroup {
      * Remark 2: 
      */ 
 
-    static orbitConj(generators, w) {
-        let delta = [w]; 
+    static orbitConj(group, w) { 
+        const delta = new indexedSet().set([w]); 
         for (let d of delta) {
-            for (let g of generators) {
+            for (let g of group.generators) {
                 let gamma = conjugate(d,g); 
                 if (!delta.includes(gamma)) {
                     delta.push(gamma);   
