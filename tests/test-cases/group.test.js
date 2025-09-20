@@ -31,7 +31,7 @@ test ('Generate Z/5Z multiplicatively using integers over Z/11Z', () => {
     let generators = [];
     generators.push(g1);  
 
-    let group = new FiniteGroup(generators, 11, "Z/11Z"); 
+    let group = new FiniteGroup(generators, "Z/11Z", 11); 
 
     expect(group.order).toBe(5); 
     expect(assertClosed(group)).toBe(true);
@@ -54,7 +54,7 @@ test ('Generate the Dihedral group D4, using 2x2 matrices over GL2(Z)', () => {
     generators.push(g1); 
     generators.push(g2); 
 
-    let group = new FiniteGroup(generators, Number.MAX_SAFE_INTEGER, "Dihedral D4"); 
+    let group = new FiniteGroup(generators, "Dihedral D4", 8); 
     // console.log(group.elems.check()); 
 
 
@@ -80,7 +80,7 @@ test ('generate the Quaternions Q8 using 2x2 matrices over GL2(Z/3Z)', () => {
     generators.push(g1); 
     generators.push(g2);     
 
-    let group = new FiniteGroup(generators, 3, "Quaternion Q8"); 
+    let group = new FiniteGroup(generators, "Quaternion Q8", 8); 
 
     // group.elems.forEach((g) => console.log(g.contents));
 
@@ -118,7 +118,7 @@ test ('generate the DP of C2 and SDP of C4, C4 using 4x4 matrices over GL4(Z/5Z)
     ]
     let generators = [g1,g2,g3]; 
 
-    let group = new FiniteGroup(generators, 5, "DP of C2 and SDP(C4,C4)"); 
+    let group = new FiniteGroup(generators, "DP of C2 and SDP(C4,C4)", 32); 
 
     // group.elems.forEach((g) => console.log(g.contents));
     expect(assertClosed(group)).toBe(true);

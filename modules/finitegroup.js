@@ -8,18 +8,19 @@ export class FiniteGroup {
      * @param {Array} generators matrix(ces) over GLFs  
      * @param {Number} n order of the GLF
      */
-    constructor(generator, name) { 
+    constructor(generator, name, expected) { 
         this.name = name; 
         this.elems = new indexedSet()
         this.elems.set(generator); 
         
         // keeps initial length of elems - keep index of generators rather than generators themselves
         this.generators = Array.from((Array(generator.length).keys()));
-        this.makeGroup(); 
+        this.opCache = new Map(); 
+        this.makeGroup(expected); 
         this.order = this.elems.size; 
     }
 
-    makeGroup() {                              
+    makeGroup(expected) {                              
         let i = 0; 
         let stepSet = this.generators.map((i) => this.elems.get(i))
         
@@ -30,14 +31,20 @@ export class FiniteGroup {
         })
 
         while (i < this.elems.size) {        
-            let curr = this.elems.get(i); 
-            stepSet.forEach( (g) => {               // O(G^{2s}), where s = |S|, slightly better than O(G^|G|) 
-                let newElem = curr.mult(g);         
+            let curr = this.elems.get(i);
+            for (let s = 0; s < stepSet.length; s++) {  // O(G^{2s}), where s = |S|, slightly better than O(G^|G|) 
+                let newElem = curr.mult(stepSet[s]); 
                 if (!this.contains(newElem)) {      
                     this.elems.add(newElem);
+                    // cache the multiplication result for use in cayley graph
+                    if (s < this.generators.length) { // i.e., geneators = [0, 1, 2], then s = 3 -> inverse of 1st elem, do not cache
+                        const key = {currkey: this.elems.index(curr.key()), gkey: this.elems.index(g.key())}; 
+                        this.opCache.set(key, this.elems.size);
+                    }
+                    if (this.elems.size === expected) return; 
                 } 
-            })
-            i++; 
+            }
+            i++;
         }
     }
 
@@ -45,8 +52,6 @@ export class FiniteGroup {
         // console.log("checking if: :" + g.contents + " is contained in group: " + this.name); 
         return this.elems.has(g); 
     }
-
-
 
     /**
      * "Algorithm 4" - Lemma 3 tells us satisfying certain conditions, orbit of an 

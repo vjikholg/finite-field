@@ -16,6 +16,8 @@ export class indexedSet {
 
     has(x) { return this.#pos.has(x.key) }; 
 
+    index(key) { return this.#pos.get(key) };
+
     get(index) { return this.#arr[index] }; 
     
     get size() { return this.#arr.length }; 
@@ -31,9 +33,9 @@ export class indexedSet {
         const k = x.key;
         if(!this.#pos.has(x.key)) {              
             this.#pos.set(k, this.#arr.length); // set element to index id, fast check to determine membership 
-            this.#arr.push(x);             // push an element, indexed access 
+            this.#arr.push(x);                  // push an element, indexed access 
         }
-        return this; 
+        return true; 
     }
 
     delete(x) { 
