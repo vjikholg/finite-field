@@ -95,7 +95,7 @@ export class Z {
     
     add(a, b) {return a + b}; 
     mult(a, b) {return a * b}; 
-    
+    representative(n) {return n};
     /**
      * Serialization methods for workers;
      */
