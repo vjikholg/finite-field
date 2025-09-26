@@ -1,4 +1,4 @@
-const DOMAIN_BRAND = new Symbol("DomainBrand"); 
+const DOMAIN_BRAND = Symbol("DomainBrand"); 
 
 export class GFp { 
     #inverses
@@ -14,7 +14,7 @@ export class GFp {
         Object.freeze(this); 
     }
 
-    get id() {return `GF(${p})`};
+    get id() {return 0};
     get word() {return this.#word};
     get p() {return this.#p}; 
 
@@ -90,7 +90,7 @@ export class Z {
         Object.defineProperty(this, DOMAIN_BRAND, {value: 'Z', enumerable: false});
     }
 
-    get id() {return 'Z'}; 
+    get id() {return 1}; 
     get word() {return this.#word};
     
     add(a, b) {return a + b}; 

@@ -38,6 +38,13 @@ export class ByteMatrix {
     get domain() {return this.#domain}
     get view() {return this.#view} // DANGEROUS MUTABLE REF
 
+    static square(n, domain) {
+        return new ByteMatrix({rows: n, cols: n, domain: this.domain.p});
+    }
+
+    static fromPayload(payload) {
+        
+    }
 
     index(i,j) {
         if (i < 0 || i >= this.#rows || j < 0 || j >= this.#cols) throw new Error(`Index out of range: ${i}, ${j}`); 
@@ -61,7 +68,7 @@ export class ByteMatrix {
 
     get key() {
         if (this.key !== null && !this.#dirty) return this.#key; 
-        const meta = (this.#domain instanceof GFp) ? `GF(${this.#domain.p})` : 'Z';
+        const meta = (this.#domain.id === 0) ? `GF(${this.#domain.p})` : 'Z';
         const head = `${meta}:${this.#rows}x${this.cols}`;
         const bytes = new Uint8Array(this.#buffer);
 
@@ -72,16 +79,15 @@ export class ByteMatrix {
     }
 
     mult(mtx) { 
-        if(! B instanceof ByteMatrix) throw new Error(`B: ${typeof(B)} is not instance of byteMatrix`); 
         if(this.#cols !== mtx.#rows) throw new Error(`Dimensional mismatch: A rows: ${this.#rows}, B cols: ${B.#cols}`); 
         if(this.#domain.id !== mtx.#domain.id) throw new Error(`Domain mismatch: A: ${this.#domain.id}, B:${B.domain.id}`);
-        if(this.#domain instanceof GFp && this.#domain.p !== B.#domain.p) throw new Error(`p-Domain mismatch: A:${this.domain.p},  B:${B.domain.p}`)
+        if(this.#domain.id === 0 && this.#domain.p !== B.#domain.p) throw new Error(`p-Domain mismatch: A:${this.domain.p},  B:${B.domain.p}`)
         
         const n  = this.#rows, m = this.#cols, k = B.#cols; 
         const out = new Matrix2({rows: n, cols: k, p: this.#domain.p})
         const A = this.#view, mtxView = mtx.#view, outView = out.#view
 
-        if (this.#domain instanceof GFp) { 
+        if (this.#domain.id === 0) { 
             const p = this.#domain.p;  
             for (let i = 0; i < n; i++) { 
                 const io = i*k, ia = i*m; 
@@ -110,29 +116,25 @@ export class ByteMatrix {
         return C;
    }
 
-    subMatrix(row, column) { // if elements belong in certain rows, certain columns, not taken. 
+    subMatrix(row, column) { 
         let sol = new ByteMatrix({rows: row-1, cols: column-1, p: this.#domain.p})
 
         for (let i = 0, si = 0; i < this.rows; i++) {
-            if (i == row) continue; 
+            if (i === row) continue; 
             for (let j = 0, sj = 0; j < this.cols; j++) {
-                if (j == column) continue; 
+                if (j === column) continue; 
                 sol.#view[sol.unsafeIndex(si, sj)] = this.#view[this.unsafeIndex(i,j)];
                 sj++;
             }
             si++;
         }
-        // console.log(sol.contents);
         return sol; 
     }
 
     transpose() {
-        if (this.#rows === 1 && this.#cols === 1) {
-            return this; 
-        }
-
+        if (this.#rows === 1 && this.#cols === 1) return this; 
+        
         const view = this.#view;
-
         let sol = new ByteMatrix({rows: this.#rows, cols: this.#cols, p: this.#domain.p}); 
 
         for (let i = 0; i < this.rows; i++) {
@@ -144,13 +146,13 @@ export class ByteMatrix {
     }
 
     det() {
-        if (this instanceof GFp) return this.#detGFp(); 
-        if (this instanceof Z) return this.#detZ(); 
+        if (this.#rows !== this.#cols) throw new Error(`Non-square matrix!: ${this.#view}`)
+        if (this.#domain.id === 0) return this.#detGFp(); 
+        if (this.#domain.id === 1) return this.#detZ(); 
         throw new Error(`Cannot take determinant from: ${typeof(this)}`);
     }
 
     #detZ() {
-        if (this.#rows !== this.#cols) throw new Error(`Non-square matrix!: ${this.#view}`)
 
         const n = this.#len;
         if (n === 1) return this.#view[0];
@@ -167,8 +169,6 @@ export class ByteMatrix {
     }  
 
     #detGFp() {
-        if (this.#rows !== this.#cols) throw new Error(`Non-square matrix!: ${this.#view}`)
-
         const n = this.#len;
         if (n === 1) return this.#view[0];
         
@@ -187,14 +187,15 @@ export class ByteMatrix {
         if (this.#rows !== this.cols) throw new Error(`Non square matrix: ${this.#view}`);
         if (this.#len === 1) return this; 
         
-        const view = this.#view;
-        let sol = new ByteMatrix({rows: this.#rows, cols: this.#cols, p})
+        let sol = new ByteMatrix({rows: this.#rows, cols: this.#cols, p: this.#domain.p})
         for (let i = 0 ; i < sol.#rows; i++ ) {
             for (let j = 0; j < sol.#cols; j++) { 
-                sol.#view[this.unsafeIndex(i,j)] = this.#domain.representative(view[this.subMatrix(i,j).det() * ((-1) ** (i+j))]);
+                const Mij = this.subMatrix(i,j); 
+                const det = Mij.det(); 
+                const val = ((i + j) % 2 === 0) ? det : this.#domain.representative(-det); // implemented in both Z and GFp  
+                sol.#view[sol.unsafeIndex(i,j)] = this.#domain.representative(val);
             }
         }
-
         return sol; 
     }
 
@@ -203,8 +204,8 @@ export class ByteMatrix {
     }
 
     inv() {
-        if (this instanceof Z) return this.#invZ();
-        if (this instanceof GFp) return this.#invGFp();
+        if (this.#domain.id === 0) return this.#invZ();
+        if (this.#domain.id === 1) return this.#invGFp();
         throw new Error(`Cannot take the inverse of: ${typeof(this)}`)
     }
 
@@ -226,7 +227,7 @@ export class ByteMatrix {
     #invZ() {
         if (this.#rows !== this.cols) throw new Error(`Non square matrix: ${this.#view}`);
         const det = this.det(); 
-        if (this instanceof Z && Math.abs(det) !== 1) throw new Error(`Z-matrix non-invertible: det ${det}`);
+        if (Math.abs(det) !== 1) throw new Error(`Z-matrix non-invertible: det ${det}`);
 
         const view = adj.#view
         const adj = this.adj(); 
@@ -236,7 +237,16 @@ export class ByteMatrix {
         for (let i = 0; i < this.#len; i++) {
             sol[i] = view[i] * invdet; 
         }
-
         return sol;
     }
+}
+
+export function fromArray(arr, p) {
+    const sol = new ByteMatrix({rows:arr.length, cols:arr[0].length, p: p, buffer: arr.flat()})
+    Object.freeze(sol); //   
+    return sol; 
+}
+
+export function unsafeFromArray(arr, p) {
+    return new ByteMatrix({rows:arr.length, cols:arr[0].length, p: p, buffer: arr.flat()}); 
 }
