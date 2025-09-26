@@ -1,4 +1,4 @@
-import { FieldRegistry, GFp, Z, isDomain } from "./domains";
+import { FieldRegistry, GFp, Z} from "./domains";
 import { cyrb53 } from "./helpers/hashcode";
 
 function byteWidth(word) { 
@@ -196,34 +196,47 @@ export class ByteMatrix {
         }
 
         return sol; 
-
     }
 
     adjugate() { 
         return this.cofactor().transpose();
     }
 
-    inv() { 
+    inv() {
+        if (this instanceof Z) return this.#invZ();
+        if (this instanceof GFp) return this.#invGFp();
+        throw new Error(`Cannot take the inverse of: ${typeof(this)}`)
+    }
+
+    #invGFp() {
+        if (this.#rows !== this.cols) throw new Error(`Non square matrix: ${this.#view}`);
+        const det = this.det(); 
+        const adj = this.adj(); 
+        const view = adj.#view
+        const invdet = this.#domain.invert(det);
+        let sol = new ByteMatrix({rows: this.#rows, cols: this.#cols, p: this.#domain.p})
+    
+        for (let i = 0; i < this.#len; i++) {
+            sol[i] = this.#domain.representative(view[i] * invdet); 
+        }
+
+        return sol;
+    }
+
+    #invZ() {
         if (this.#rows !== this.cols) throw new Error(`Non square matrix: ${this.#view}`);
         const det = this.det(); 
         if (this instanceof Z && Math.abs(det) !== 1) throw new Error(`Z-matrix non-invertible: det ${det}`);
-        const adj = this.adj(); 
-        const invdet = (this instanceof Z ?  parseFloat(1/parseFloat(det)) : this.#domain.invert(det));
 
-        let sol = new ByteMatrix({rows: this.#rows, cols: this.#cols, p: this.#domain.p})
         const view = adj.#view
-        if (this instanceof Z) { 
-            for (let i = 0; i < this.#len; i++) {
-                sol[i] = view[i] * invdet; 
-            }
+        const adj = this.adj(); 
+        const invdet = parseFloat(1/parseFloat(det)) 
+        let sol = new ByteMatrix({rows: this.#rows, cols: this.#cols, p: this.#domain.p})
+            
+        for (let i = 0; i < this.#len; i++) {
+            sol[i] = view[i] * invdet; 
         }
 
-        if (this instanceof Z) {
-            for (let i = 0; i < this.#len; i++) {
-                sol[i] = this.#domain.representative(view[i] * invdet); 
-            }
-        }
-        
-        return sol; 
+        return sol;
     }
 }

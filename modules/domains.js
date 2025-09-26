@@ -18,8 +18,8 @@ export class GFp {
     get word() {return this.#word};
     get p() {return this.#p}; 
 
-    mult(a,b) {return (a * b) % this.#p};
-    add(a,b) {return (a + b) % this.#p;};
+    mult(a,b) {return this.representative(a * b)};
+    add(a,b) {return this.representative(a + b);};
 
     invert(n) { 
         if (n === 1) return 1; 
