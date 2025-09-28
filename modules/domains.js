@@ -66,8 +66,8 @@ export class GFp {
 
 function extGcd(a,b) {
     let r0 = Math.abs(a), r1 = Math.abs(b); 
-    let s0 = 1; s1 = 0; 
-    let t0 = 0; t1 = 1;
+    let s0 = 1, s1 = 0; 
+    let t0 = 0, t1 = 1;
 
     while (r1 !== 0) { 
         const q = Math.floor(r0/r1); 
@@ -85,8 +85,9 @@ function extGcd(a,b) {
 export class Z {
     #word 
 
-    constructor(word = 'f64') {
+    constructor(word = 'i32') {
         this.#word = word; 
+        this.p = Number.MAX_SAFE_INTEGER;
         Object.defineProperty(this, DOMAIN_BRAND, {value: 'Z', enumerable: false});
     }
 
@@ -114,12 +115,17 @@ export function isDomain(obj) {
 
 export const FieldRegistry = { 
     fields: new Map(), 
-    getField: (n) => {
-        if (!fields.has(n)) fields.set(n, makeDomain(n)); 
-        return fields.get(n); 
+    getField(n) {
+        if (!this.fields.has(n)) this.fields.set(n, this.makeDomain(n)); 
+        return this.fields.get(n); 
     },
-    makeDomain: (n) => { 
-        if (n === Number.MAX_SAFE_INTEGER) return new Z(obj.word || 'f64'); 
+    makeDomain(n) { 
+        if (n === Number.MAX_SAFE_INTEGER) return new Z(); 
         return new GFp(n); 
     }
+}
+
+export const DOMAINS = { 
+    0: GFp, 
+    1: Z
 }
