@@ -13,3 +13,7 @@ export const cyrb53 = (str, seed = 0) => {
   
     return 4294967296 * (2097151 & h2) + (h1 >>> 0);
 };
+// https://stackoverflow.com/questions/919612/mapping-two-integers-to-one-in-a-unique-and-deterministic-way#comment36385733_13871379
+export const cantor = (a, b) => {
+    return a << 16 + b
+}

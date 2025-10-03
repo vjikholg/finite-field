@@ -1,13 +1,13 @@
 // bytematrix.test.js
 import { GFp, Z } from "../../modules/domains.js" ;
-import { ByteMatrix, fromArray, unsafeFromArray } from "../../modules/bytematrix.js" ;
+import { ByteMatrix, fromArray, unsafeFromArray, index } from "../../modules/bytematrix.js";
 
 function makeBM(pOrZ, rows, cols, values) {
   	const M = new ByteMatrix({ rows, cols, p: pOrZ });
-  		let idx = 0;
-  		for (let i = 0; i < rows; i++)
-  		  	for (let j = 0; j < cols; j++)
-  		    	M.set(i, j, values[idx++]);
+  		  let idx = 0;
+  		  for (let i = 0; i < rows; i++)
+  		  	  for (let j = 0; j < cols; j++)
+  		    	    M.set(i, j, values[idx++]);
   	return M;
 }
 
@@ -20,7 +20,6 @@ describe('ByteMatrix: constructor & getters', () => {
   	  	expect(A.domain.p).toBe(7);
   	  	expect(A.view.length).toBe(6);
   	});
-
   	test('Z domain wiring via sentinel', () => {
   	  	const A = new ByteMatrix({ rows: 1, cols: 2, p: Number.MAX_SAFE_INTEGER });
   	  	expect(A.domain).toBeInstanceOf(Z);
@@ -30,13 +29,12 @@ describe('ByteMatrix: constructor & getters', () => {
 
 describe('index / unsafeIndex / get / set', () => {
   	test('index bounds and mapping', () => {
-  	 	const A = new ByteMatrix({ rows: 2, cols: 2, p: 7 });
-  	 	expect(A.index(0, 0)).toBe(0);
-  	 	expect(A.index(1, 1)).toBe(3);
-  	 	expect(() => A.index(2, 0)).toThrow();
-  	 	expect(() => A.index(0, 2)).toThrow();
+  	 	  const A = new ByteMatrix({ rows: 2, cols: 2, p: 7 });
+  	 	  expect(A.index(0, 0)).toBe(0);
+  	 	  expect(A.index(1, 1)).toBe(3);
+  	 	  expect(() => A.index(2, 0)).toThrow();
+  	 	  expect(() => A.index(0, 2)).toThrow();
   	});
-
   	test('set uses representative, get returns stored value', () => {
   	  	const A = new ByteMatrix({ rows: 2, cols: 2, p: 7 });
   	  	A.set(1, 1, -1);
@@ -97,21 +95,21 @@ describe('mult', () => {
 });
 
 describe('subMatrix & transpose', () => {
-  test('subMatrix removes row/col', () => {
-    const M = makeBM(7, 3, 3, [
-      1, 2, 3,
-      4, 5, 6,
-      7, 8, 9
-    ]);
-    const S = M.subMatrix(0, 0);
-    expect(S.rows).toBe(2);
-    expect(S.cols).toBe(2);
-    // Entries reduced mod 7
-    expect(S.get(0, 0)).toBe(5 % 7);
-    expect(S.get(0, 1)).toBe(6 % 7);
-    expect(S.get(1, 0)).toBe(8 % 7);
-    expect(S.get(1, 1)).toBe(9 % 7);
-  });
+    test('subMatrix removes row/col', () => {
+        const M = makeBM(7, 3, 3, [
+            1, 2, 3,
+            4, 5, 6,
+            7, 8, 9
+        ]);
+        const S = M.subMatrix(0, 0);
+        expect(S.rows).toBe(2);
+        expect(S.cols).toBe(2);
+        // Entries reduced mod 7
+        expect(S.get(0, 0)).toBe(5 % 7);
+        expect(S.get(0, 1)).toBe(6 % 7);
+        expect(S.get(1, 0)).toBe(8 % 7);
+        expect(S.get(1, 1)).toBe(9 % 7);
+    });
 
   test('transpose swaps rows/cols and positions', () => {
     const M = makeBM(7, 2, 3, [1, 2, 3, 4, 5, 6]);
@@ -159,7 +157,7 @@ describe('cofactor / adjugate', () => {
     expect(C.get(1,0)).toBe((p - (b % p)) % p);
     expect(C.get(1,1)).toBe(a % p);
   });
-
+// 
   test('adjugate equals transpose(cofactor)', () => {
     const M = makeBM(7, 2, 2, [1, 2, 3, 4]);
     const Adj = M.adjugate();
@@ -168,6 +166,26 @@ describe('cofactor / adjugate', () => {
       for (let j = 0; j < 2; j++)
         expect(Adj.get(i, j)).toBe(C.get(i, j));
   });
+// 
+  test('3x3 adjugate equals transpose(cofactor)', () => {
+    const M = makeBM(13,3,3,[1,2,3,4,5,6,7,8,9]); 
+    const Adj = M.adjugate();
+    console.log(`this is Adj.view: ${Adj.view}`);
+    const sol = [10, 6, 10, 6, 1, 6, 10, 6, 10];
+    for (let i = 0; i < 3; i++) 
+      for(let j = 0; j < 3; j++)
+        expect(Adj.get(i,j)).toBe(sol[Adj.unsafeIndex(i,j)])
+  })
+
+    test('4x4 adjugate equals transpose(cofactor)', () => {
+    const M = makeBM(13,4,4,[3,4,5,2,4,5,6,1,2,4,7,8,1,6,9,2]); 
+    const Adj = M.adjugate();
+    console.log(`this is Adj.view: ${Adj.view}`);
+    const sol = [9,5,10,7,2,11,5,5,11,10,9,0,5,4,11,12];
+    for (let i = 0; i < 4; i++) 
+      for(let j = 0; j < 4; j++)
+        expect(Adj.get(i,j)).toBe(sol[Adj.unsafeIndex(i,j)])
+  })
 });
 
 describe('inverse', () => {
@@ -178,7 +196,7 @@ describe('inverse', () => {
             0,1,0,
             0,0,1
         ]);
-        const Inv = I.inv();
+        const Inv = I.invert();
         for (let i = 0; i < 3; i++)
             for (let j = 0; j < 3; j++)
                 expect(Inv.get(i,j)).toBe(I.get(i,j));
@@ -187,7 +205,7 @@ describe('inverse', () => {
   test('GF(p): random 2x2 · inv = identity (mod p)', () => {
         const p = 17;
         const M = makeBM(p, 2, 2, [5, 7, 2, 3]); // det = 5*3 - 7*2 = 1 ≠ 0 (mod 17)
-        const Minv = M.inv();
+        const Minv = M.invert();
         const I = M.mult(Minv);
         expect(I.get(0,0)).toBe(1);
         expect(I.get(0,1)).toBe(0);
@@ -196,27 +214,29 @@ describe('inverse', () => {
   });
 
   test('ℤ: unimodular 2x2 inverse exists; otherwise throws', () => {
-        const z = Number.MAX_SAFE_INTEGER;
-        const U = makeBM(z, 2, 2, [0, 1, -1, 0]); // det = 1
-        const Uinv = U.inv();
+       const z = Number.MAX_SAFE_INTEGER;
+       const U = makeBM(z, 2, 2, [0, 1, -1, 0]); // det = 1
+       const Uinv = U.invert();
 
-		console.log(U.view); 
-		console.log(Uinv.view)
-        // Should be [[0,-1],[1,0]]
-        expect(Uinv.get(0,0)).toBe(0);
-        expect(Uinv.get(0,1)).toBe(-1);
-        expect(Uinv.get(1,0)).toBe(1);
-        expect(Uinv.get(1,1)).toBe(0);
+ 	    console.log(U.view); 
+ 	    console.log(Uinv.view)
+       // Should be [[0,-1],[1,0]]
+       expect(Uinv.get(0,0)).toBe(0);
+       expect(Uinv.get(0,1)).toBe(-1);
+       expect(Uinv.get(1,0)).toBe(1);
+       expect(Uinv.get(1,1)).toBe(0);
 
-        const N = makeBM(z, 2, 2, [2, 0, 0, 2]); // det = 4
-        expect(() => N.inv()).toThrow();
-    });
+       const N = makeBM(z, 2, 2, [2, 0, 0, 2]); // det = 4
+       expect(() => N.invert()).toThrow();
+   });
 });
 
 describe('fromArray / unsafeFromArray', () => {
     test('fromArray builds an immutable matrix with correct contents', () => {
-        const M = fromArray([[1,2],[3,4]], 7);
-		console.log(M.view);
+        const M = fromArray([[1,2],[3,4]], 7, 2, 2);
+		    console.log("this is:"); 
+        console.log(M.view);
+        console.log(JSON.stringify(M));
         expect(M.rows).toBe(2);
         expect(M.cols).toBe(2);
         expect(M.get(0,0)).toBe(1);

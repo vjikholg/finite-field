@@ -1,21 +1,23 @@
-import { FieldRegistry, GFp, Z} from "./domains";
+import { FieldRegistry } from "./domains";
 import { cyrb53 } from "./helpers/hashcode";
 
-function byteWidth(word) { 
+export function byteWidth(word) { 
     if (word === 'u8') return 1; 
     if (word === 'u16') return 2; 
     if (word === 'i32') return 4; 
-    if (word === 'f32') return 8; 
+    if (word === 'f32') return 4; // easy way to add reals/rationals 
     throw new Error(`${word} is an invalid/unknown word`); 
 }
 
-function makeView(buffer, word) {
+export function makeView(buffer, word) {
     if (word === 'u8') return new Uint8Array(buffer); 
     if (word === 'u16') return new Uint16Array(buffer); 
     if (word === 'i32') return new Int32Array(buffer);
     if (word === 'f32') return new Float32Array(buffer);
     throw new Error(`${word} is an invalid/unknown word`); 
 }
+
+
 
 export class ByteMatrix {
     #rows; #cols; #domain; #buffer; #view; #key; #dirty; #len;
@@ -28,8 +30,11 @@ export class ByteMatrix {
         const bw = byteWidth(this.#domain.word)
         this.#buffer = buffer ?? new ArrayBuffer(this.#len * bw); 
         this.#view = makeView(this.#buffer, this.#domain.word); 
-        this.#key = null; 
+        this.#key = null; // make sure when grab key, use .key, not .#key
         this.#dirty = true;
+        for (const [key, value] of Object.entries(this)) {
+            // console.log(`${key}, ${value}`);
+        }
     }
 
     get length() {return this.#len}
@@ -43,7 +48,17 @@ export class ByteMatrix {
     }
 
     static fromPayload(payload) {
-        
+        const dom = FieldRegistry.get(payload.domain.p);  
+        return new ByteMatrix({
+            rows: payload.rows, 
+            cols: payload.cols, 
+            domain: dom, 
+            buffer: payload.buffer})
+    }
+
+    toPayload() {
+        const dom = this.#domain.toPayload();
+        return {rows: this.#rows, cols: this.#cols, domain: dom, buffer: this.#buffer}; 
     }
 
     index(i,j) {
@@ -71,11 +86,11 @@ export class ByteMatrix {
         if (this.#key !== null && !this.#dirty) return this.#key; 
         const meta = (this.#domain.id === 0) ? `GF(${this.#domain.p})` : 'Z';
         const head = `${meta}:${this.#rows}x${this.cols}`;
-        const bytes = new Uint8Array(this.#buffer);
-
+        const bytes = this.#view;
+        
         this.#key = cyrb53(head + Array.from(bytes).join(","));
         this.#dirty = false;   
-        
+        // // console.log(`${this.#key}, from matrix: ${this.#view} with head: ${head + Array.from(bytes).join(",")}, where bytes is: ${bytes}`); 
         return this.#key;
     }
 
@@ -130,6 +145,7 @@ export class ByteMatrix {
             }
             si++;
         }
+        // if (sol.#view.length === 4) // console.log(sol.#view)
         return sol; 
     }
 
@@ -149,27 +165,29 @@ export class ByteMatrix {
 
     det() {
         if (this.#rows !== this.#cols) throw new Error(`Non-square matrix!: ${this.#view}`)
-        if (DeterminantCache.has(this.#key)) return DeterminantCache.get(this.#key)
+        //if (DeterminantCache.has(this.key)) return DeterminantCache.get(this.key)
         if (this.#domain.id === 0) return this.#detGFp(); 
         if (this.#domain.id === 1) return this.#detZ(); 
         throw new Error(`Cannot take determinant from: ${typeof(this)}`);
     }
 
     #detZ() {
-
         const n = this.#len;
+        // // console.log(`length of our view is: ${n}`);
         if (n === 1) return this.#view[0];
         
         const view = this.#view
-        if (n === 4) return (view[0]*view[3] - view[1]*view[2])
+        if (n === 4) {
+            return (view[0]*view[3] - view[1]*view[2])
+        } 
 
         let sol = 0; 
         for (let i = 0; i < this.#cols; i++) {
             sol += view[i] * this.subMatrix(0, i).#detZ() * ((-1) ** i);
         }
-        
+        DeterminantCache.set(this.key, sol);
         return sol; 
-    }  
+    }
 
     #detGFp() {
         const n = this.#len;
@@ -180,10 +198,16 @@ export class ByteMatrix {
 
         let sol = 0; 
         for (let i = 0; i < this.#cols; i++) {
-            sol += view[i] * this.subMatrix(0, i).#detZ();
+            const pivot = view[i];
+            if (pivot === 0) continue;
+            const minorDet = this.subMatrix(0, i).det();
+            const sign = (i % 2 === 0) ? 1 : this.#domain.representative(-1);
+            const term = this.#domain.mult(pivot, minorDet);
+            const signedTerm = this.#domain.mult(sign, term);
+            sol = this.#domain.add(sol, signedTerm);
         }
-        
-        return this.domain.representative(sol); 
+        DeterminantCache.set(this.key, this.domain.representative(sol));
+        return this.#domain.representative(sol);
     }
 
     cofactor() { 
@@ -196,6 +220,7 @@ export class ByteMatrix {
                 const Mij = this.subMatrix(i,j); 
                 const det = Mij.det(); 
                 const val = ((i + j) % 2 === 0) ? det : this.#domain.representative(-det); // implemented in both Z and GFp  
+                // console.log(`at index ${i}, ${j} we have determinant ${det} yielding value: ${val}`);
                 sol.#view[sol.unsafeIndex(i,j)] = this.#domain.representative(val);
             }
         }
@@ -206,7 +231,7 @@ export class ByteMatrix {
         return this.cofactor().transpose();
     }
 
-    inv() {
+    invert() {
         if (InverseCache.has(this.#key)) return InverseCache.get(this.key);    
         let sol = undefined;
         if (this.#domain.id === 0) sol = this.#invGFp();
@@ -219,10 +244,11 @@ export class ByteMatrix {
 
     #invGFp() {
         if (this.#rows !== this.cols) throw new Error(`Non square matrix: ${this.#view}`);
-        const det = this.det(); 
-        const adj = this.adjugate(); 
+        const det = this.det();
+        const adj = this.adjugate();
         const view = adj.#view
         const invdet = this.#domain.invert(det);
+        // console.log(`det: ${det}, adj: ${view}, invdet: ${invdet}`);
         let sol = new ByteMatrix({rows: this.#rows, cols: this.#cols, p: this.#domain.p})
     
         for (let i = 0; i < this.#len; i++) {
@@ -241,7 +267,6 @@ export class ByteMatrix {
         const view = adj.#view
         const invdet = parseFloat(1/parseFloat(det)) 
         let sol = new ByteMatrix({rows: this.#rows, cols: this.#cols, p: this.#domain.p})
-            
         for (let i = 0; i < this.#len; i++) {
             sol.#view[i] = view[i] * invdet; 
         }
@@ -255,21 +280,20 @@ export class ByteMatrix {
     }
 }
 
-export function fromArray(arr, p) {
+export function fromArray(arr, p, row, col) {
     if (arr.length < 0) throw new Error(`arr: ${arr} empty array`);
     const dom = FieldRegistry.getField(p); 
     let view = makeView(arr.flat(), dom.word);
-    console.log(view);
-    let temp = new ByteMatrix({rows:arr.length, cols:arr[0].length, p: p, buffer: view});
+    let temp = new ByteMatrix({rows:row, cols:col, p: p, buffer: view});
     Object.freeze(temp);
     return temp; 
 }
 
-export function unsafeFromArray(arr, p) {
+export function unsafeFromArray(arr, p, row, col) {
     if (arr.length < 0) throw new Error(`arr: ${arr} empty array`);
     const dom = FieldRegistry.getField(p); 
     let view = makeView(arr.flat(), dom.word);
-    let temp = new ByteMatrix({rows:arr.length, cols:arr[0].length, p: p, buffer: view});
+    let temp = new ByteMatrix({rows:row, cols:col, p: p, buffer: view});
     return temp; 
 }
 
@@ -284,6 +308,24 @@ export const InverseCache = {
     has(key) {
         return this.inverses.has(key);
     }
+}
+
+export function makeBM(pOrZ, rows, cols, values) {
+  	const M = new ByteMatrix({ rows, cols, p: pOrZ });
+  		  let idx = 0;
+  		  for (let i = 0; i < rows; i++)
+  		  	  for (let j = 0; j < cols; j++)
+  		    	    M.set(i, j, values[idx++]);
+  	return M;
+}
+
+export function makeIdentity({order, dims}) {
+    const M = new ByteMatrix({ rows: dims, p: order });
+    for (let i = 0; i < dims; i++) { 
+  	    M.set(i, i, 1);
+    }
+    // console.log(M.view);
+    return M; 
 }
 
 export const DeterminantCache = { 

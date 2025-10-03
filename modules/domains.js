@@ -87,12 +87,12 @@ export class Z {
 
     constructor(word = 'i32') {
         this.#word = word; 
-        this.p = Number.MAX_SAFE_INTEGER;
         Object.defineProperty(this, DOMAIN_BRAND, {value: 'Z', enumerable: false});
     }
 
     get id() {return 1}; 
     get word() {return this.#word};
+    get p() {return Number.MAX_SAFE_INTEGER}; 
     
     add(a, b) {return a + b}; 
     mult(a, b) {return a * b}; 
