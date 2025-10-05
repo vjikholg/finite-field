@@ -22,10 +22,10 @@ export class FiniteGroup {
     }
 
     makeGroup(expected) {
-        console.log('making group...')                         
+        // console.log('making group...')                         
         let i = 0; 
         let stepSet = this.generators.map((i) => this.elems.get(i))
-        console.log(stepSet);
+        // console.log(stepSet);
         this.generators.forEach((gIndex) => {
             let inv = this.elems.get(gIndex).invert();
             stepSet.push(inv);
@@ -36,7 +36,7 @@ export class FiniteGroup {
             let curr = this.elems.get(i);
             for (let s = 0; s < stepSet.length; s++) {                          // O(G^{2s}), where s = |S|, slightly better than O(G^|G|) 
                 let newElem = curr.mult(stepSet[s]);
-                // console.log(`Multiplying: ${curr.view} with ${stepSet[s].view} with result ${newElem.view}`);
+                // // console.log(`Multiplying: ${curr.view} with ${stepSet[s].view} with result ${newElem.view}`);
             
                 if (!this.contains(newElem)) {      
                     this.elems.add(newElem);                                    
@@ -57,7 +57,7 @@ export class FiniteGroup {
 
 
     contains(g) {
-        // console.log("checking if: :" + g.contents + " is contained in group: " + this.name); 
+        // // console.log("checking if: :" + g.contents + " is contained in group: " + this.name); 
         return this.elems.has(g); 
     }
 }
@@ -72,7 +72,7 @@ export function assertClosed(group){
         for (let h of group.elems) {
             let temp = g.mult(h); 
             if(!group.elems.has(temp)) {
-                console.log(`the product between g: ${g.view} and h: ${h.view} does not exist: ${temp.view} `);
+                // console.log(`the product between g: ${g.view} and h: ${h.view} does not exist: ${temp.view} `);
                 return false; 
             }
         }
@@ -88,7 +88,7 @@ export function assertInverse(group) { // yeah this is legit O(|G|^2) garbage fi
     for (let g of group.elems) { 
         let temp = g.invert(); 
         if (!group.contains(temp)) { // indexed set takes this from O(|G|) -> O(1) lookup  
-            console.log("group does not contain inverse of g: " + g.contents + ", " + temp.contents);
+            // console.log("group does not contain inverse of g: " + g.contents + ", " + temp.contents);
             return false; 
         }
     }

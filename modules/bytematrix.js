@@ -1,5 +1,4 @@
 import { FieldRegistry } from "./domains";
-import { cyrb53 } from "./helpers/hashcode";
 
 export function byteWidth(word) { 
     if (word === 'u8') return 1; 
@@ -17,10 +16,21 @@ export function makeView(buffer, word) {
     throw new Error(`${word} is an invalid/unknown word`); 
 }
 
+export function fromArray(arr, p, row, col) {
+    if (arr.length < 0) throw new Error(`arr: ${arr} empty array`);
+    let temp = new ByteMatrix({rows:row, cols:col, p: p, buffer: arr});
+    Object.freeze(temp);
+    return temp; 
+}
 
+export function unsafeFromArray(arr, p, row, col) {
+    if (arr.length < 0) throw new Error(`arr: ${arr} empty array`);
+    let temp = new ByteMatrix({rows:row, cols:col, p: p, buffer: arr});
+    return temp; 
+}
 
 export class ByteMatrix {
-    #rows; #cols; #domain; #buffer; #view; #key; #dirty; #len;
+    #rows; #cols; #domain; #view; #key; #dirty; #len;
     
     constructor({rows, cols, p, buffer}) { 
         this.#rows = rows, 
@@ -28,13 +38,13 @@ export class ByteMatrix {
         this.#domain = FieldRegistry.getField(p); 
         this.#len = rows * cols || rows * rows; 
         const bw = byteWidth(this.#domain.word)
-        this.#buffer = buffer ?? new ArrayBuffer(this.#len * bw); 
-        this.#view = makeView(this.#buffer, this.#domain.word); 
+        // this.#buffer = buffer ?? new ArrayBuffer(this.#len * bw); 
+        this.#view = makeView(buffer ?? new ArrayBuffer(this.#len * bw), this.#domain.word); 
         this.#key = null; // make sure when grab key, use .key, not .#key
         this.#dirty = true;
-        for (const [key, value] of Object.entries(this)) {
-            // console.log(`${key}, ${value}`);
-        }
+        // for (const [key, value] of Object.entries(this)) {
+        //     // console.log(`${key}, ${value}`);
+        // }
     }
 
     get length() {return this.#len}
@@ -42,9 +52,20 @@ export class ByteMatrix {
     get cols() {return this.#cols;}
     get domain() {return this.#domain}
     get view() {return this.#view} // DANGEROUS MUTABLE REF
+    get key() {
+        if (this.#key !== null && !this.#dirty) return this.#key; 
+        const meta = (this.#domain.id === 0) ? `GF(${this.#domain.p})` : 'Z';
+        const head = `${meta}:${this.#rows}x${this.cols}`;
+        const bytes = this.#view;
+        
+        this.#key = head + bytes.join(',');
+        this.#dirty = false;   
+        // // console.log(`${this.#key}, from matrix: ${this.#view} with head: ${head + Array.from(bytes).join(",")}, where bytes is: ${bytes}`); 
+        return this.#key;
+    }
 
     static square(n, domain) {
-        return new ByteMatrix({rows: n, cols: n, domain: this.domain.p});
+        return new ByteMatrix({rows: n, cols: n, domain: domain.p});
     }
 
     static fromPayload(payload) {
@@ -58,7 +79,7 @@ export class ByteMatrix {
 
     toPayload() {
         const dom = this.#domain.toPayload();
-        return {rows: this.#rows, cols: this.#cols, domain: dom, buffer: this.#buffer}; 
+        return {rows: this.#rows, cols: this.#cols, domain: dom, buffer: this.#view.buffer}; 
     }
 
     index(i,j) {
@@ -80,18 +101,6 @@ export class ByteMatrix {
         this.#view[this.index(i,j)] = n; 
         this.#dirty = true;
         return true; 
-    } 
-
-    get key() {
-        if (this.#key !== null && !this.#dirty) return this.#key; 
-        const meta = (this.#domain.id === 0) ? `GF(${this.#domain.p})` : 'Z';
-        const head = `${meta}:${this.#rows}x${this.cols}`;
-        const bytes = this.#view;
-        
-        this.#key = cyrb53(head + Array.from(bytes).join(","));
-        this.#dirty = false;   
-        // // console.log(`${this.#key}, from matrix: ${this.#view} with head: ${head + Array.from(bytes).join(",")}, where bytes is: ${bytes}`); 
-        return this.#key;
     }
 
     mult(mtx) { 
@@ -110,11 +119,10 @@ export class ByteMatrix {
                 
                 for(let j = 0 ; j < k; j++) {
                     let s = 0; 
-                    
                     for (let t = 0; t < m; t++) {
                         s += (A[ia + t] * mtxView[t*k + j]); 
-                        outView[io + j] = this.#domain.representative(s); 
                     }
+                    outView[io + j] = this.#domain.representative(s); 
                 }
             }
         } else { // Z 
@@ -130,7 +138,6 @@ export class ByteMatrix {
                 }
             }
         }
-        out.#dirty = true; out.#key = null; 
         return out;
    }
 
@@ -280,22 +287,7 @@ export class ByteMatrix {
     }
 }
 
-export function fromArray(arr, p, row, col) {
-    if (arr.length < 0) throw new Error(`arr: ${arr} empty array`);
-    const dom = FieldRegistry.getField(p); 
-    let view = makeView(arr.flat(), dom.word);
-    let temp = new ByteMatrix({rows:row, cols:col, p: p, buffer: view});
-    Object.freeze(temp);
-    return temp; 
-}
 
-export function unsafeFromArray(arr, p, row, col) {
-    if (arr.length < 0) throw new Error(`arr: ${arr} empty array`);
-    const dom = FieldRegistry.getField(p); 
-    let view = makeView(arr.flat(), dom.word);
-    let temp = new ByteMatrix({rows:row, cols:col, p: p, buffer: view});
-    return temp; 
-}
 
 export const InverseCache = { 
     inverses: new Map(),
@@ -308,15 +300,6 @@ export const InverseCache = {
     has(key) {
         return this.inverses.has(key);
     }
-}
-
-export function makeBM(pOrZ, rows, cols, values) {
-  	const M = new ByteMatrix({ rows, cols, p: pOrZ });
-  		  let idx = 0;
-  		  for (let i = 0; i < rows; i++)
-  		  	  for (let j = 0; j < cols; j++)
-  		    	    M.set(i, j, values[idx++]);
-  	return M;
 }
 
 export function makeIdentity({order, dims}) {

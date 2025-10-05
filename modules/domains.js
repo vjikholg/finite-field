@@ -124,8 +124,3 @@ export const FieldRegistry = {
         return new GFp(n); 
     }
 }
-
-export const DOMAINS = { 
-    0: GFp, 
-    1: Z
-}

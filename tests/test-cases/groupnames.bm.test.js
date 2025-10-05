@@ -1,5 +1,5 @@
-import { Matrix } from "../../modules/matrix";
-import { FiniteGroup, assertGroup } from "../../modules/finitegroup";
+import { ByteMatrix, unsafeFromArray } from "../../modules/bytematrix.js";
+import { FiniteGroup, assertGroup } from "../../modules/finitegroup.new.js";
 
 const allGroups = require('../../data/output.json')
 // const groupInfo = JSON.parse(json); 
@@ -14,13 +14,9 @@ describe(" 'generating all groups' ", () => {
         ({generators, glforder, name, order}) => {              // 1. allGroup is an array of OBJECTS, which means reading in (arg1, arg2,...) will not work
                                                                 // solution: convert into object {arg1, arg2,...}
             // first convert 2D arrays to matrix objects 
-            const mtc = generators.map(mtx => {                 // 2. use map instead of forEach if we want to perform an operation on each element in the array  
-                const temp = new Matrix(glforder, mtx.length)   // without using too much space 
-                temp.contents = mtx; 
-                return temp; 
-                });
+            const mtc = generators.map(mtx => unsafeFromArray(mtx.flat(), glforder, mtx.length, mtx[0].length));
             // console.log(`testing group: ${name}`)
-            let group = new FiniteGroup(mtc, name); 
+            let group = new FiniteGroup(mtc, name, order); 
             expect(group.order).toEqual(order); 
             expect(groupTest(group)).toBe(true); 
         }, 

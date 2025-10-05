@@ -120,7 +120,6 @@ test ('generate the DP of C2 and SDP of C4, C4 using 4x4 matrices over GL4(Z/5Z)
 
     let group = new FiniteGroup(generators, "DP of C2 and SDP(C4,C4)", 32); 
 
-    // group.elems.forEach((g) => console.log(g.contents));
     expect(assertClosed(group)).toBe(true);
     expect(assertInverse(group)).toBe(true);
     expect(assertIdentityExist(group)).toBe(true);
