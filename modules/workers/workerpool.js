@@ -1,26 +1,37 @@
-export class WorkerPool {
-    constructor(url, size = Math.max(1, (navigator.hardwareConcurrency|0) - 1)) {
-        this.idle = [];
-        this.busy = new Set(); 
-        for (let i = 0 ; i < size; i++) this.idle.push(new Worker(url, {type: "module"})); 
+export function createPool(workerURL, size = navigator.hardwareConcurrency || 4) {
+    const workers = Array.from({length: size}, () => { 
+        new Worker(workerURL, {type: 'module'}); 
+    })
+
+    let r = 0; 
+    /**
+     * 
+     * @param {*} stepsPayload = ByteMatrix.toPayload()[]; 
+     */
+    function broadcastInitialization(stepsPayload) { 
+        const transfers = stepsPayload.map(s => s.buffer); 
+        for (const worker of workers) worker.postMessage({type: 'init', steps:stepsPayload}, transfers);
     }
 
-    #waitForIdle() {
-        return new Promise(r => {
-            const check = () => this.idle.length ? r(this.idle.pop()) : setTimeout(check, 1);
-            check(); 
+    function expandBatches(batches) {
+        return Promise.all(batches.map(batch => new Promise(res => {
+            const worker = workers[r++ % workers.length];
+            const onMessage = e => {
+                worker.removeEventListener('message', onMessage); 
+                res(e.data)}
+            
+            worker.addEventListener('message', onMessage); 
+            const transfers = batch.items.map(item => item.buffer); 
+            worker.postMessage({type: 'expand', items: batch.items}, transfers);  
+        })))
+    }
+    
+    function destroy() {
+        workers.forEach((worker) =>  {
+            worker.terminate(); 
         })
     }
 
-    async run(payload) {
-        const worker = this.idle.pop() ?? await this.#waitForIdle();
-        this.busy.push(worker);
-        const res = await call(worker, payload); 
-        this.busy.delete(worker); 
-        this.idle.push(worker);
-    }
+    return {broadcastInitialization, expandBatches, destroy, _poolInitialized: false}; 
 
-    end() {
-        for (const worker of [...this.idle, ...this.busy]) worker.terminate(); 
-    }
 }
