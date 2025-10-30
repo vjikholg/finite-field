@@ -114,3 +114,16 @@ export function assertGroup(group) {
     return assertInverse(group) && assertIdentityExist(group) && assertClosed(group); 
     // associativity trivial given rep. by matrix, so dont need to check
 }
+
+export const GroupHandler = {
+    groups: new Map(), 
+    get(key) {
+        return this.groups.get(key); 
+    }, 
+    set(key, group) {
+        this.groups.set(key, group); 
+    },
+    has(key) {
+        return this.groups.has(key);
+    }
+}

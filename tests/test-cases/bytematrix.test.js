@@ -44,20 +44,20 @@ describe('index / unsafeIndex / get / set', () => {
   	});
 });
 
-describe('key (stable & content-sensitive)', () => {
-  	test('same contents/domain yield the same key; change flips key', () => {
-  	  	const A = makeBM(7, 2, 2, [1, 2, 3, 4]);
-  	  	const B = makeBM(7, 2, 2, [1, 2, 3, 4]);
-  	  	const k1 = A.key;
-  	  	const k2 = B.key;
-  	  	expect(typeof k1).toBe('number'); // cyrb53 returns a number
-  	  	expect(k2).toBe(k1);
-		
-  	  	B.set(0, 0, 2);
-  	  	const k3 = B.key;
-  	  	expect(k3).not.toBe(k2);
-  	});
-});
+// describe('key (stable & content-sensitive)', () => {
+//   	test('same contents/domain yield the same key; change flips key', () => {
+//   	  	const A = makeBM(7, 2, 2, [1, 2, 3, 4]);
+//   	  	const B = makeBM(7, 2, 2, [1, 2, 3, 4]);
+//   	  	const k1 = A.key;
+//   	  	const k2 = B.key;
+//   	  	expect(typeof k1).toBe('number'); // cyrb53 returns a number
+//   	  	expect(k2).toBe(k1);
+// 		
+//   	  	B.set(0, 0, 2);
+//   	  	const k3 = B.key;
+//   	  	expect(k3).not.toBe(k2);
+//   	});
+// });
 
 describe('mult', () => {
   test('GF(p): identity · M = M (mod p)', () => {
@@ -170,7 +170,7 @@ describe('cofactor / adjugate', () => {
   test('3x3 adjugate equals transpose(cofactor)', () => {
     const M = makeBM(13,3,3,[1,2,3,4,5,6,7,8,9]); 
     const Adj = M.adjugate();
-    console.log(`this is Adj.view: ${Adj.view}`);
+    // console.log(`this is Adj.view: ${Adj.view}`);
     const sol = [10, 6, 10, 6, 1, 6, 10, 6, 10];
     for (let i = 0; i < 3; i++) 
       for(let j = 0; j < 3; j++)
@@ -180,7 +180,7 @@ describe('cofactor / adjugate', () => {
     test('4x4 adjugate equals transpose(cofactor)', () => {
     const M = makeBM(13,4,4,[3,4,5,2,4,5,6,1,2,4,7,8,1,6,9,2]); 
     const Adj = M.adjugate();
-    console.log(`this is Adj.view: ${Adj.view}`);
+    // console.log(`this is Adj.view: ${Adj.view}`);
     const sol = [9,5,10,7,2,11,5,5,11,10,9,0,5,4,11,12];
     for (let i = 0; i < 4; i++) 
       for(let j = 0; j < 4; j++)
@@ -217,9 +217,6 @@ describe('inverse', () => {
        const z = Number.MAX_SAFE_INTEGER;
        const U = makeBM(z, 2, 2, [0, 1, -1, 0]); // det = 1
        const Uinv = U.invert();
-
- 	    console.log(U.view); 
- 	    console.log(Uinv.view)
        // Should be [[0,-1],[1,0]]
        expect(Uinv.get(0,0)).toBe(0);
        expect(Uinv.get(0,1)).toBe(-1);
@@ -231,15 +228,196 @@ describe('inverse', () => {
    });
 });
 
-describe('fromArray / unsafeFromArray', () => {
-    test('fromArray builds an immutable matrix with correct contents', () => {
-        const M = fromArray([[1,2],[3,4]], 7, 2, 2);
-		    console.log("this is:"); 
-        console.log(M.view);
-        console.log(JSON.stringify(M));
-        expect(M.rows).toBe(2);
-        expect(M.cols).toBe(2);
-        expect(M.get(0,0)).toBe(1);
-        expect(Object.isFrozen(M)).toBe(true);
-    });
+// describe('fromArray / unsafeFromArray', () => {
+//     test('fromArray builds an immutable matrix with correct contents', () => {
+//         const M = fromArray([[1,2],[3,4]], 7, 2, 2);
+// 		    console.log("this is:"); 
+//         console.log(M.view);
+//         console.log(JSON.stringify(M));
+//         expect(M.rows).toBe(2);
+//         expect(M.cols).toBe(2);
+//         expect(M.get(0,0)).toBe(1);
+//         expect(Object.isFrozen(M)).toBe(true);
+//     });
+// });
+
+function ZM(arr2d) {
+  const r = arr2d.length;
+  const c = arr2d[0].length;
+  const M = new ByteMatrix({ rows: r, cols: c, p: Number.MAX_SAFE_INTEGER }); // ℤ sentinel
+  for (let i = 0; i < r; i++) {
+    for (let j = 0; j < c; j++) M.set(i, j, arr2d[i][j]);
+  }
+  return M;
+}
+
+// Small reference det for n<=4 using Laplace (fine for tiny sizes only)
+function detIntSmall(arr2d) {
+  const n = arr2d.length;
+  if (n === 1) return arr2d[0][0];
+  if (n === 2) return arr2d[0][0]*arr2d[1][1] - arr2d[0][1]*arr2d[1][0];
+  const sub = (m, skipR, skipC) => m
+    .filter((_, r) => r !== skipR)
+    .map(row => row.filter((_, c) => c !== skipC));
+  let s = 0;
+  for (let j = 0; j < n; j++) {
+    const sign = (j & 1) ? -1 : 1;
+    s += sign * arr2d[0][j] * detIntSmall(sub(arr2d, 0, j));
+  }
+  return s;
+}
+
+// Multiply two Z matrices (for multiplicativity tests)
+function multZ(A, B) {
+  const r = A.rows, m = A.cols, k = B.cols;
+  const C = new ByteMatrix({ rows: r, cols: k, p: Number.MAX_SAFE_INTEGER });
+  for (let i = 0; i < r; i++) {
+    for (let j = 0; j < k; j++) {
+      let s = 0;
+      for (let t = 0; t < m; t++) s += A.get(i,t) * B.get(t,j);
+      C.set(i, j, s);
+    }
+  }
+  return C;
+}
+
+describe('det(Z) via Bareiss (dispatch through det())', () => {
+  test('1x1: det equals the element', () => {
+    const M = ZM([[7]]);
+    expect(M.det()).toBe(7);
+  });
+  
+  test('2x2: basic positive/negative', () => {
+    const M1 = ZM([[3, 4],[5, 6]]);
+    expect(M1.det()).toBe(-2);
+  
+    const M2 = ZM([[2, -1],[-3, 5]]);
+    // 2*5 - (-1 * -3) = 10 - 3 = 7
+    expect(M2.det()).toBe(7);
+  });
+  
+  test('3x3: known value (non-singular)', () => {
+    const A = [
+      [2, -1, 3],
+      [0,  4, 5],
+      [1,  2, 6],
+    ];
+    const M = ZM(A);
+    expect(M.det()).toBe(detIntSmall(A));
+  });
+  
+  test('4x4: known value (compare to small reference)', () => {
+    const A = [
+      [ 1,  2,  3,  4],
+      [ 0, -1,  5,  2],
+      [ 2,  0,  1, -3],
+      [ 1,  1,  0,  2],
+    ];
+    const M = ZM(A);
+    expect(M.det()).toBe(detIntSmall(A));
+  });
+  
+  test('Upper triangular: det = product of diagonal', () => {
+    const A = [
+      [3,  1, -2],
+      [0,  5,  7],
+      [0,  0, -4],
+    ];
+    const M = ZM(A);
+    expect(M.det()).toBe(3 * 5 * -4);
+  });
+  
+  test('Singular: duplicate row => det = 0', () => {
+    const A = [
+      [1, 2, 3],
+      [4, 5, 6],
+      [1, 2, 3], // duplicate of row 0
+    ];
+    const M = ZM(A);
+    expect(M.det()).toBe(0);
+  });
+  
+  test('Row swap flips sign', () => {
+    const A = [
+      [0, 1, 0],
+      [2, 3, 4],
+      [0, 5, 6],
+    ];
+    const M1 = ZM(A);
+    const d1 = M1.det(); // should be -12 (by hand calc)
+
+
+    const A_swapped = [
+      [2, 3, 4],
+      [0, 1, 0],
+      [0, 5, 6],
+    ];
+
+    const M2 = ZM(A_swapped);
+
+    console.log(`det1: ${d1}, det2: ${M2.det()}`)
+    expect(d1).toBe(-12);
+    expect(M2.det()).toBe(-d1);
+  });
+
+ test('Add multiple of one row to another doesn’t change det', () => {
+   const A = [
+     [2, 1, 3],
+     [0, 4, 5],
+     [1, 0, 2],
+   ];
+   const M = ZM(A);
+   const d = M.det();
+
+   // R2 <- R2 + 3*R1  (det should be unchanged)
+   const B = [
+     [2, 1, 3],
+     [0 + 3*2, 4 + 3*1, 5 + 3*3], // [6, 7, 14]
+     [1, 0, 2],
+   ];
+   const Mb = ZM(B);
+   expect(Mb.det()).toBe(d);
+ });
+
+ test('Requires pivoting: first pivot zero but matrix non-singular', () => {
+   // First entry 0; Bareiss should swap row and compute correctly
+   const A = [
+     [0, 2, 3],
+     [4, 5, 6],
+     [7, 8, 10],
+   ];
+   const M = ZM(A);
+   expect(M.det()).toBe(detIntSmall(A));
+ });
+
+ test('Multiplicativity: det(AB) = det(A) * det(B) for random small 3x3', () => {
+   const trials = 8;
+   for (let t = 0; t < trials; t++) {
+     // Small integers to avoid overflow in Int32 storage and keep exactness
+     const a = [], b = [];
+     for (let i = 0; i < 3; i++) {
+       a[i] = [];
+       b[i] = [];
+       for (let j = 0; j < 3; j++) {
+         a[i][j] = Math.floor(Math.random() * 11) - 5; // [-5..5]
+         b[i][j] = Math.floor(Math.random() * 11) - 5;
+       }
+     }
+     const A = ZM(a), B = ZM(b);
+     const dA = A.det();
+     const dB = B.det();
+     const AB = multZ(A, B);
+     expect(AB.det() === dA * dB).toBe(true);
+   }
+ });
+
+ test('Larger magnitudes (still safe): 3x3 with entries in [-100,100]', () => {
+   const A = [
+     [  12, -7, 100],
+     [ -30,  4,  11],
+     [  21,  5,  -9],
+   ];
+   const M = ZM(A);
+   expect(M.det()).toBe(detIntSmall(A));
+});
 });

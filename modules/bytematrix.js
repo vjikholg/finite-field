@@ -174,7 +174,7 @@ export class ByteMatrix {
         if (this.#rows !== this.#cols) throw new Error(`Non-square matrix!: ${this.#view}`)
         //if (DeterminantCache.has(this.key)) return DeterminantCache.get(this.key)
         if (this.#domain.id === 0) return this.#detGFp(); 
-        if (this.#domain.id === 1) return this.#detZ(); 
+        if (this.#domain.id === 1) return this.#detZBareiss(); 
         throw new Error(`Cannot take determinant from: ${typeof(this)}`);
     }
 
@@ -190,10 +190,77 @@ export class ByteMatrix {
 
         let sol = 0; 
         for (let i = 0; i < this.#cols; i++) {
-            sol += view[i] * this.subMatrix(0, i).#detZ() * ((-1) ** i);
+            const sign = (i & 1) ? -1 : 1; 
+            sol += view[i] * this.subMatrix(0, i).#detZ() * sign;
         }
         DeterminantCache.set(this.key, sol);
         return sol; 
+    }
+
+    #detZBareiss() {
+        const n = this.#rows; // use matrix dimension, not flattened length
+        if (n === 1) return this.#view[0];
+        
+        const view = this.#view
+        if (n === 2) { // 2x2 shortcut when n is the dimension
+            return (view[0]*view[3] - view[1]*view[2])
+        } 
+
+        const A = new Array(n * n); 
+        for (let i = 0 ; i < A.length; i++) {
+            A[i] = this.#view[i];
+        }
+        
+        let detSign = 1; let prevPivot = 1;             // M_00 = 1 by definition
+        for (let k = 0 ; k < n - 1; k++) {      
+            let pivotRow = k;       
+            for (let r = k; r < n; r++) {               // select row to pivot off of, if selected pivot w/ entry != 0, select as pivot 
+                if (A[r * n  + k] !== 0) {              // if its zero then we need to row swap. 
+                    pivotRow = r;                       // k is the diagonal we're working on... M_kk basically
+                    break;                              // 
+                }
+            }
+     
+            if (A[pivotRow * n + k] === 0) return 0;    // singular matrix 
+
+            if (pivotRow !== k) {
+                ByteMatrix.#swapRows(A, n, k, pivotRow); 
+                detSign = -detSign;
+            }
+
+            const pivot = A[k * n + k]; // M_kk
+
+            for (let i = k + 1; i < n; i++) {
+                const Mik = A[i * n + k]; 
+                for (let j = k + 1; j < n; j++) {
+                    // const Mij = A[i * n + j]; 
+                    // const Mkk = pivot; 
+                    // let num;
+                    // if (Mik === 0) {
+                    //     num = Mij * Mkk
+                    // } else {
+                    //     const Mkj = A[k * n + j]; 
+                    //     num = (Mij * Mkk) - (Mik * Mkj);
+                    // }
+
+                    const Mij = A[i * n + j]; 
+                    const Mkk = pivot; 
+                    const Mkj = A[k * n + j]; 
+                    let num = (Mij * Mkk) - (Mik * Mkj);
+
+
+                    // console.log(`${A}, modified idx ${i * n + j} to ${num}`);
+                    
+                    if (num % prevPivot !== 0) throw new Error(`Bareiss: non-exact division: prev=${prevPivot}, num=${num}`);
+                    A[i * n + j] = (prevPivot === 1) ? num : (num / prevPivot);
+                }
+                A[i * n + k] = 0;
+            }
+            prevPivot = pivot;
+        }
+        let sol = detSign * A[(n - 1) * n + (n - 1)]
+        DeterminantCache.set(this.key, sol);
+        return sol;
     }
 
     #detGFp() {
@@ -272,7 +339,7 @@ export class ByteMatrix {
         
         const adj = this.adjugate(); 
         const view = adj.#view
-        const invdet = parseFloat(1/parseFloat(det)) 
+        const invdet = (det === 1 ? 1 : -1);
         let sol = new ByteMatrix({rows: this.#rows, cols: this.#cols, p: this.#domain.p})
         for (let i = 0; i < this.#len; i++) {
             sol.#view[i] = view[i] * invdet; 
@@ -280,11 +347,99 @@ export class ByteMatrix {
         return sol;
     }
 
+    #invZBareiss() {
+        const n = this.#rows;
+        if (n !== this.#cols) throw new Error('inv: non-square');
+
+        // Make working copies as Number 2D arrays in flat form
+        const A = new Array(n * n);
+        for (let i = 0; i < A.length; i++) A[i] = this.#view[i];
+
+        const B = new Array(n * n).fill(0);
+        for (let i = 0; i < n; i++) B[i * n + i] = 1; // identity
+
+        let detSign = 1;
+        let d = 1; // Bareiss previous pivot
+
+        for (let k = 0; k < n; k++) {
+            // pivoting
+            let pivotRow = k;
+            for (let r = k; r < n; r++) {
+              if (A[r * n + k] !== 0) { pivotRow = r; break; }
+            }
+            if (A[pivotRow * n + k] === 0) throw new Error('invZ: singular');
+            if (pivotRow !== k) {
+                ByteMatrix.#swapRows(A, n, k, pivotRow);
+                ByteMatrix.#swapRows(B, n, k, pivotRow);
+                detSign = -detSign;
+            }
+      
+          const p = A[k * n + k]; // current pivot
+      
+          // For all i != k, eliminate column k and update row i in both A and B
+          for (let i = 0; i < n; i++) if (i !== k) {
+                const aik = A[i * n + k];
+                if (aik === 0) continue;
+
+                // A[i,j] update for all j != k
+                for (let j = 0; j < n; j++) if (j !== k) {
+                    const num = A[i * n + j] * p - aik * A[k * n + j];
+                    // if (num % d !== 0) throw new Error('Bareiss GJ: non-exact division');
+                    A[i * n + j] = (d === 1) ? num : (num / d);
+                }
+                A[i * n + k] = 0;
+            
+                // B[i,j] update for all j
+                for (let j = 0; j < n; j++) {
+                    const num = B[i * n + j] * p - aik * B[k * n + j];
+                    // if (num % d !== 0) throw new Error('Bareiss GJ: non-exact division (B)');
+                    B[i * n + j] = (d === 1) ? num : (num / d);
+                }
+          }
+      
+          // Scale the pivot row k in A and B (keep A[k,k] = p)
+          // After elimination, set d <- p for next step
+          d = p;
+        }
+    
+        // After the loop, A is diagonal with last pivot = det(A)
+        // For fraction-free GJ, B now equals det(A) * A^{-1}
+        const det = A[(n - 1) * n + (n - 1)] * detSign;
+    
+        if (Math.abs(det) !== 1) {
+            // Not unimodular → inverse not in ℤ. You can either throw or return rational form.
+            throw new Error('invZ: det != ±1 (not unimodular)');
+        }
+    
+        // Scale B by det^{-1} = det (since det = ±1)
+        const sign = det; // +1 or -1
+        for (let i = 0; i < B.length; i++) B[i] *= sign;
+    
+        // Materialize result into a ByteMatrix in your Z domain
+        const out = new ByteMatrix({ rows: n, cols: n, p: Number.MAX_SAFE_INTEGER });
+        const V = out.#view; // inside class, you have access to private fields across instances
+        for (let i = 0; i < B.length; i++) V[i] = B[i];
+        out.#dirty = true; out.#key = null;
+        return out;
+}
+
     equal(mtx) { 
         if (this.#cols !== mtx.#cols || this.#rows !== mtx.#rows || this.#domain.p !== mtx.#domain.p) return false; 
         for (let i = 0 ; i < this.#view.length ; i++) if (this.#view[i] !== mtx.#view[i]) return false
         return true; 
     }
+
+    static #swapRows(arr, nCols, r1, r2) {
+        if (r1 === r2) return; 
+        const off1 = r1 * nCols, off2 = r2 * nCols;
+        for (let j = 0 ; j < nCols; j++) {
+            const t = arr[off1 + j]; 
+            arr[off1 + j] = arr[off2 + j]; 
+            arr[off2 + j] = t;
+        }
+    }
+
+
 }
 
 
